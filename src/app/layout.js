@@ -8,6 +8,14 @@ export const metadata = {
   description: "The ultimate student management system for tutors.",
 };
 
+export const viewport = {
+  viewportFit: 'cover',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, // Prevents zooming on inputs which feels more 'native'
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">

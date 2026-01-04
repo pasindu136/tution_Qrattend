@@ -28,7 +28,10 @@ export default function MobileNav({ user }: { user: any }) {
             <div className="h-20 lg:hidden" />
 
             {/* Bottom Navigation Bar */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 lg:hidden z-50 px-6 py-2 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <nav
+                className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 lg:hidden z-50 px-6 pt-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]"
+                style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
+            >
                 <div className="flex justify-between items-center">
                     {navItems.map((item) => {
                         const isActive = pathname === item.href;
