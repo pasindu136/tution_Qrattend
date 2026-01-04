@@ -18,14 +18,24 @@ function formatTime(timeStr: string) {
 export default async function DashboardView({ userId, isOwner = true }: { userId: string, isOwner?: boolean }) {
     const supabase = createClient();
 
-    // Fetch Classes for the SPECIFIC user (userId)
-    const { data: classes } = await supabase
-        .from("classes")
-        .select("*, students(count)")
-        .eq("teacher_id", userId)
-        .order("created_at", { ascending: false });
+    // 1. Fetch Classes and Profile in Parallel
+    const [classesResult, profileResult] = await Promise.all([
+        supabase
+            .from("classes")
+            .select("*, students(count)")
+            .eq("teacher_id", userId)
+            .order("created_at", { ascending: false }),
+        supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", userId)
+            .single()
+    ]);
 
-    // Fetch Expenses
+    const classes = classesResult.data;
+    const profile = profileResult.data;
+
+    // 2. Fetch Expenses (Depends on classes)
     const classIds = classes?.map((c: any) => c.id) || [];
     const { data: expenses } = await supabase
         .from("expenses")
@@ -46,13 +56,6 @@ export default async function DashboardView({ userId, isOwner = true }: { userId
         .reduce((sum: number, exp: any) => sum + exp.amount, 0) || 0;
 
     const netRevenue = monthlyGrossRevenue - monthlyExpenses;
-
-    // Fetch Profile for Name
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", userId)
-        .single();
 
     // Greeting logic
     const hour = new Date().getHours();

@@ -13,29 +13,32 @@ export default async function AllFeesPage() {
     const { data: classes } = await supabase.from('classes').select('id, name, fee_amount').eq('teacher_id', user.id)
     const classIds = classes?.map(c => c.id) || []
 
-    // 2. Get Payments for current Month
+    // 2. Prepare Date Variables
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-    const { data: payments } = await supabase
-        .from('payments')
-        .select('*, students(full_name), classes(name)')
-        .in('class_id', classIds)
-        .eq('month', currentMonth)
-        .order('paid_at', { ascending: false });
-
-    // 3. Get Expenses for current Month
     const startOfMonth = `${currentMonth}-01`;
     // Calculate start of next month for filtering
     const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     const startOfNextMonth = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}-01`;
 
-    const { data: expenses } = await supabase
-        .from('expenses')
-        .select('amount')
-        .in('class_id', classIds)
-        .gte('date', startOfMonth)
-        .lt('date', startOfNextMonth);
+    // 3. Fetch Payments and Expenses in Parallel
+    const [paymentsResult, expensesResult] = await Promise.all([
+        supabase
+            .from('payments')
+            .select('*, students(full_name), classes(name)')
+            .in('class_id', classIds)
+            .eq('month', currentMonth)
+            .order('paid_at', { ascending: false }),
+        supabase
+            .from('expenses')
+            .select('amount')
+            .in('class_id', classIds)
+            .gte('date', startOfMonth)
+            .lt('date', startOfNextMonth)
+    ]);
+
+    const payments = paymentsResult.data;
+    const expenses = expensesResult.data;
 
     // Calculate Totals
     const totalRevenue = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
