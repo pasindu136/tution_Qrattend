@@ -4,7 +4,7 @@ import { approveUser, deleteUser } from "./actions";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
-import { LogOut } from "lucide-react";
+import { LogOut, Search, Filter, Users, UserCheck, Clock, Shield, ChevronRight, MoreVertical, LayoutGrid, GraduationCap } from "lucide-react";
 
 export default async function AdminDashboard() {
     const supabase = createClient();
@@ -17,112 +17,251 @@ export default async function AdminDashboard() {
         return redirect("/login");
     }
 
-    // Fetch all profiles
-    const { data: profiles } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
+    // Parallel Data Fetching for Dashboard
+    const [profilesResult, studentsCountResult, classesCountResult] = await Promise.all([
+        supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+        supabase.from("students").select("*", { count: 'exact', head: true }),
+        supabase.from("classes").select("*", { count: 'exact', head: true })
+    ]);
+
+    const profiles = profilesResult.data || [];
+    const totalStudents = studentsCountResult.count || 0;
+    const totalClasses = classesCountResult.count || 0;
+
+    // Derived Stats
+    const totalTutors = profiles.filter(p => p.role !== 'admin').length;
+    const pendingApprovals = profiles.filter(p => !p.is_approved).length;
+    const activeTutors = profiles.filter(p => p.is_approved && p.role !== 'admin').length;
 
     return (
-        <div className="min-h-screen bg-slate-50 p-8">
-            <div className="max-w-7xl mx-auto">
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h1 className="text-3xl font-bold text-slate-900 mb-2">Admin Dashboard</h1>
-                        <p className="text-slate-500">Manage all tutors and gain access to their dashboards.</p>
+        <div className="min-h-screen bg-slate-50 pb-20">
+            {/* Top Navigation Bar */}
+            <div className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-30 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white">
+                        <Shield size={20} />
                     </div>
+                    <div>
+                        <h1 className="text-lg font-bold text-slate-900 leading-tight">Admin Portal</h1>
+                        <p className="text-xs text-slate-500 font-medium">System Overview</p>
+                    </div>
+                </div>
+                <form action={signOut}>
+                    <button className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                        <LogOut size={20} />
+                    </button>
+                </form>
+            </div>
 
-                    <form action={signOut}>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-white text-slate-600 hover:text-red-600 font-bold text-sm rounded-lg border border-slate-200 hover:border-red-200 hover:bg-red-50 transition shadow-sm">
-                            <LogOut size={16} />
-                            Log Out
-                        </button>
-                    </form>
+            <div className="max-w-7xl mx-auto p-4 md:p-8">
+
+                {/* Greeting */}
+                <div className="mb-8">
+                    <h2 className="text-2xl font-bold text-slate-900">Dashboard Overview</h2>
+                    <p className="text-slate-500">Welcome back, Administrator.</p>
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table className="w-full text-left text-sm text-slate-600">
-                        <thead className="bg-slate-50 text-slate-900 font-bold border-b border-slate-100">
-                            <tr>
-                                <th className="p-4 px-6">Name</th>
-                                <th className="p-4">Email Address</th>
-                                <th className="p-4">Phone</th>
-                                <th className="p-4">Role</th>
-                                <th className="p-4">Status</th>
-                                <th className="p-4 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {profiles?.map((profile) => (
-                                <tr key={profile.id} className="hover:bg-slate-50 transition">
-                                    <td className="p-4 px-6 font-bold text-slate-900">
-                                        {profile.full_name || 'No Name'}
-                                    </td>
-                                    <td className="p-4 font-mono text-slate-500">
-                                        {profile.email}
-                                    </td>
-                                    <td className="p-4">
-                                        {profile.phone || '-'}
-                                    </td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${profile.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                                            {profile.role}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">
-                                        {profile.is_approved ? (
-                                            <span className="flex items-center gap-1 text-green-600 font-bold text-xs uppercase">
-                                                <span className="w-2 h-2 rounded-full bg-green-500"></span> Active
-                                            </span>
-                                        ) : (
-                                            <span className="flex items-center gap-1 text-amber-500 font-bold text-xs uppercase">
-                                                <span className="w-2 h-2 rounded-full bg-amber-500"></span> Pending
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="p-4 text-right flex justify-end gap-2 items-center">
-                                        {!profile.is_approved && (
-                                            <form action={approveUser.bind(null, profile.id)}>
-                                                <button className="px-3 py-1.5 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-xs font-bold transition">
-                                                    Approve
-                                                </button>
-                                            </form>
-                                        )}
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                <Users size={18} />
+                            </div>
+                            <span className="text-xs font-bold text-slate-400 uppercase">Total Tutors</span>
+                        </div>
+                        <p className="text-2xl font-bold text-slate-900">{totalTutors}</p>
+                    </div>
 
-                                        <form action={deleteUser.bind(null, profile.id)}>
-                                            <button
-                                                className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold transition"
-                                            >
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 bg-green-50 text-green-600 rounded-lg">
+                                <UserCheck size={18} />
+                            </div>
+                            <span className="text-xs font-bold text-slate-400 uppercase">Active</span>
+                        </div>
+                        <p className="text-2xl font-bold text-slate-900">{activeTutors}</p>
+                    </div>
+
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
+                                <Clock size={18} />
+                            </div>
+                            <span className="text-xs font-bold text-slate-400 uppercase">Pending</span>
+                        </div>
+                        <p className="text-2xl font-bold text-slate-900">{pendingApprovals}</p>
+                    </div>
+
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                                <GraduationCap size={18} />
+                            </div>
+                            <span className="text-xs font-bold text-slate-400 uppercase">Total Students</span>
+                        </div>
+                        <p className="text-2xl font-bold text-slate-900">{totalStudents}</p>
+                    </div>
+                </div>
+
+                {/* Controls */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Search tutors by name or email..."
+                            className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition font-medium"
+                        />
+                    </div>
+                    <button className="flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-50 transition">
+                        <Filter size={18} />
+                        <span>Filter</span>
+                    </button>
+                </div>
+
+                {/* Content Area */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full text-left text-sm text-slate-600">
+                            <thead className="bg-slate-50 border-b border-slate-100">
+                                <tr>
+                                    <th className="p-4 px-6 font-bold text-slate-900">User Details</th>
+                                    <th className="p-4 font-bold text-slate-900">Role</th>
+                                    <th className="p-4 font-bold text-slate-900">Status</th>
+                                    <th className="p-4 font-bold text-slate-900">Joined Date</th>
+                                    <th className="p-4 text-right font-bold text-slate-900">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {profiles.map((profile) => (
+                                    <tr key={profile.id} className="hover:bg-slate-50/80 transition group">
+                                        <td className="p-4 px-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold uppercase">
+                                                    {profile.full_name?.[0] || 'U'}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-slate-900">{profile.full_name}</p>
+                                                    <p className="text-xs text-slate-500 font-mono">{profile.email}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="p-4">
+                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${profile.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                                                }`}>
+                                                {profile.role}
+                                            </span>
+                                        </td>
+                                        <td className="p-4">
+                                            {profile.is_approved ? (
+                                                <div className="flex items-center gap-1.5 text-green-600 font-bold text-xs">
+                                                    <span className="relative flex h-2 w-2">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                                    </span>
+                                                    Active
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1.5 text-amber-600 font-bold text-xs">
+                                                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                                                    Pending
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="p-4 text-slate-500 font-mono text-xs">
+                                            {new Date(profile.created_at).toLocaleDateString()}
+                                        </td>
+                                        <td className="p-4 text-right">
+                                            <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {!profile.is_approved && (
+                                                    <form action={approveUser.bind(null, profile.id)}>
+                                                        <button className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-bold transition border border-green-200">
+                                                            Approve
+                                                        </button>
+                                                    </form>
+                                                )}
+                                                {profile.role !== 'admin' && (
+                                                    <>
+                                                        <Link
+                                                            href={`/admin/tutors/${profile.id}`}
+                                                            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition shadow-sm"
+                                                        >
+                                                            Manage
+                                                        </Link>
+                                                        <form action={deleteUser.bind(null, profile.id)}>
+                                                            <button title="Suspend User" className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                                                                <LogOut size={16} className="rotate-180" />
+                                                            </button>
+                                                        </form>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden">
+                        {profiles.map((profile) => (
+                            <div key={profile.id} className="p-5 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-lg uppercase">
+                                            {profile.full_name?.[0] || 'U'}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-slate-900">{profile.full_name}</h3>
+                                            <p className="text-xs text-slate-500 font-sans">{profile.email}</p>
+                                        </div>
+                                    </div>
+                                    <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${profile.is_approved ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                                        }`}>
+                                        {profile.is_approved ? 'Active' : 'Pending'}
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 mt-4">
+                                    {!profile.is_approved && (
+                                        <form action={approveUser.bind(null, profile.id)} className="w-full">
+                                            <button className="w-full py-2.5 bg-green-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-green-500/20 active:scale-95 transition">
+                                                Approve
+                                            </button>
+                                        </form>
+                                    )}
+
+                                    {profile.role !== 'admin' ? (
+                                        <Link
+                                            href={`/admin/tutors/${profile.id}`}
+                                            className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-lg shadow-slate-900/20 flex items-center justify-center gap-2 active:scale-95 transition text-center"
+                                        >
+                                            Manage Dashboard
+                                        </Link>
+                                    ) : (
+                                        <div className="col-span-2 py-2.5 bg-slate-100 text-slate-400 rounded-xl text-sm font-bold text-center">
+                                            Admin Account
+                                        </div>
+                                    )}
+
+                                    {(profile.role !== 'admin' && profile.is_approved) && (
+                                        <form action={deleteUser.bind(null, profile.id)} className="w-full">
+                                            <button className="w-full py-2.5 bg-red-50 text-red-600 rounded-xl text-sm font-bold border border-red-100 active:scale-95 transition">
                                                 Suspend
                                             </button>
                                         </form>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
 
-                                        {profile.role !== 'admin' && (
-                                            <Link
-                                                href={`/admin/tutors/${profile.id}`}
-                                                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1"
-                                            >
-                                                Manage
-                                            </Link>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-
-                            {(!profiles || profiles.length === 0) && (
-                                <tr>
-                                    <td colSpan={5} className="p-8 text-center text-slate-400">
-                                        No users found.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
                 </div>
             </div>
-            <p className="mt-6 text-xs text-slate-400 text-center max-w-lg mx-auto">
-                Note: User passwords are encrypted and cannot be viewed. However, as an Admin, you can access their dashboard directly to manage classes, students, and payments on their behalf.
-            </p>
         </div>
     );
 }
