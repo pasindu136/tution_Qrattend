@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ArrowLeft, Users, Calendar, Banknote, Search, CheckCircle, Save, Loader2, History } from 'lucide-react'
 import { saveAttendance } from "./actions"
 import { motion, AnimatePresence } from "framer-motion"
@@ -20,6 +21,7 @@ export default function AttendanceManager({
     initialDate: string,
     attendanceData: any[]
 }) {
+    const router = useRouter()
     const [date, setDate] = useState(initialDate)
     const [searchQuery, setSearchQuery] = useState("")
     const [isSaving, setIsSaving] = useState(false)
@@ -27,6 +29,11 @@ export default function AttendanceManager({
 
     // Map StudentID -> Status
     const [localAttendance, setLocalAttendance] = useState<Record<string, string>>({})
+
+    // Sync date state with prop
+    useEffect(() => {
+        setDate(initialDate)
+    }, [initialDate])
 
     // Initialize/Reset local state when props change
     useEffect(() => {
@@ -63,11 +70,6 @@ export default function AttendanceManager({
         if (isSaving) return;
         setIsSaving(true);
 
-        // Prepare records array
-        // We send ALL present records (so absent ones are either updated to absent or not sent if Upsert handles it)
-        // Actually, our upsert logic handles 'status'. So we should send current state for everyone we touched?
-        // Actually best to send ALL students' current status for that day to be safe, OR just send the map.
-        // Let's send the map converted to array.
         const records = Object.entries(localAttendance).map(([studentId, status]) => ({
             student_id: studentId,
             status
@@ -113,7 +115,8 @@ export default function AttendanceManager({
                                 date={date}
                                 onChange={(newDate) => {
                                     if (hasChanges && !confirm("You have unsaved changes. Are you sure you want to switch dates?")) return;
-                                    window.location.href = `attendance?date=${newDate}`
+                                    // Use replace to avoid stacking history or push to adding
+                                    router.push(`?date=${newDate}`)
                                 }}
                             />
                         </div>

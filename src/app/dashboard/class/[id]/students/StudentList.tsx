@@ -7,12 +7,14 @@ import { ArrowLeft, Users, Calendar, Banknote, Plus, Trash2, Edit2, Search, Phon
 import StudentModal from "./StudentModal"
 import { deleteStudent } from "./actions"
 import ClassNav from "@/components/dashboard/ClassNav"
+import ConfirmationModal from "@/components/ui/ConfirmationModal"
 
 export default function StudentList({ classId, initialStudents }: { classId: string, initialStudents: any[] }) {
     const [students, setStudents] = useState(initialStudents)
     const [searchQuery, setSearchQuery] = useState("")
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingStudent, setEditingStudent] = useState<any>(null)
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean, studentId: string | null }>({ isOpen: false, studentId: null })
 
     // Filter students locally for search
     const filteredStudents = initialStudents.filter(student =>
@@ -20,10 +22,15 @@ export default function StudentList({ classId, initialStudents }: { classId: str
         student.tute_id?.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    async function handleDelete(studentId: string) {
-        if (!confirm("Are you sure you want to remove this student? This action cannot be undone.")) return;
+    function handleDelete(studentId: string) {
+        setDeleteConfirmation({ isOpen: true, studentId })
+    }
 
-        await deleteStudent(classId, studentId)
+    async function confirmDelete() {
+        if (deleteConfirmation.studentId) {
+            await deleteStudent(classId, deleteConfirmation.studentId)
+            setDeleteConfirmation({ isOpen: false, studentId: null })
+        }
     }
 
     return (
@@ -177,6 +184,17 @@ export default function StudentList({ classId, initialStudents }: { classId: str
                     </div>
                 )}
             </div>
+
+            <ConfirmationModal
+                isOpen={deleteConfirmation.isOpen}
+                onClose={() => setDeleteConfirmation({ isOpen: false, studentId: null })}
+                onConfirm={confirmDelete}
+                title="Remove Student?"
+                message="Are you sure you want to remove this student from the class? All attendance and fee records for this student will also be deleted."
+                confirmText="Yes, Remove"
+                cancelText="Cancel"
+                isDangerous={true}
+            />
 
             <StudentModal
                 classId={classId}

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ArrowLeft, Users, Calendar, Banknote } from 'lucide-react';
 import ClassNav from "@/components/dashboard/ClassNav";
 
+import EditClassModal from "./EditClassModal";
+
 export default async function ClassDetailsPage({ params: { id } }: { params: { id: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -32,14 +34,17 @@ export default async function ClassDetailsPage({ params: { id } }: { params: { i
         <div className="min-h-screen">
 
             {/* Header */}
-            <div className="flex items-center gap-4 mb-8">
-                <Link href="/dashboard" className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition">
-                    <ArrowLeft size={20} />
-                </Link>
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900">{classData.name}</h1>
-                    <p className="text-slate-500">{classData.subject} • {classData.day} at {classData.time}</p>
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                    <Link href="/dashboard" className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition">
+                        <ArrowLeft size={20} />
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900">{classData.name}</h1>
+                        <p className="text-slate-500">{classData.subject} • {classData.day} at {classData.time}</p>
+                    </div>
                 </div>
+                <EditClassModal classData={classData} />
             </div>
 
             {/* Navigation Tabs */}

@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useEffect } from 'react';
@@ -7,6 +8,7 @@ import Link from 'next/link';
 import { addExpense, deleteExpense } from './actions';
 import { motion, AnimatePresence } from 'framer-motion';
 import ClassNav from "@/components/dashboard/ClassNav";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 type Expense = {
     id: string;
@@ -16,66 +18,32 @@ type Expense = {
     created_at: string;
 };
 
-export default function ExpensesManager({ classId, initialExpenses }: { classId: string, initialExpenses: Expense[] }) {
-    const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
-    const [isAdding, setIsAdding] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
-
-    // Check for mobile
-    useEffect(() => {
-        const checkMobile = () => setIsMobile(window.innerWidth < 1024);
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
-
-    // Form State
-    const [description, setDescription] = useState('');
-    const [amount, setAmount] = useState('');
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!description || !amount || !date) return;
-
-        setIsSubmitting(true);
-        // Call Server Action
-        const result = await addExpense(classId, description, parseFloat(amount), new Date(date));
-
-        if (result.success) {
-            window.location.reload();
-        } else {
-            alert('Failed to add expense');
-        }
-        setIsSubmitting(false);
-        setIsAdding(false);
-    };
-
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure?")) return;
-        const result = await deleteExpense(classId, id);
-        if (result.success) {
-            window.location.reload();
-        } else {
-            alert('Failed to delete');
-        }
-    };
-
-    // Calculate Totals
-    const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const thisMonthExpenses = expenses
-        .filter(e => {
-            const d = new Date(e.date);
-            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-        })
-        .reduce((sum, e) => sum + e.amount, 0);
-
-    // Reusable Form Content
-    const ExpenseForm = () => (
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+// Extracted Form Component to prevent re-render focus loss
+function ExpenseForm({
+    onSubmit,
+    description,
+    setDescription,
+    amount,
+    setAmount,
+    date,
+    setDate,
+    isMobile,
+    onCancel,
+    isSubmitting
+}: {
+    onSubmit: (e: React.FormEvent) => void;
+    description: string;
+    setDescription: (s: string) => void;
+    amount: string;
+    setAmount: (s: string) => void;
+    date: string;
+    setDate: (s: string) => void;
+    isMobile: boolean;
+    onCancel: () => void;
+    isSubmitting: boolean;
+}) {
+    return (
+        <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Description</label>
                 <div className="relative">
@@ -125,7 +93,7 @@ export default function ExpensesManager({ classId, initialExpenses }: { classId:
                 {!isMobile && (
                     <button
                         type="button"
-                        onClick={() => setIsAdding(false)}
+                        onClick={onCancel}
                         className="px-5 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition"
                     >
                         Cancel
@@ -142,6 +110,71 @@ export default function ExpensesManager({ classId, initialExpenses }: { classId:
             </div>
         </form>
     );
+}
+
+export default function ExpensesManager({ classId, initialExpenses }: { classId: string, initialExpenses: Expense[] }) {
+    const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+    const [isAdding, setIsAdding] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean, expenseId: string | null }>({ isOpen: false, expenseId: null });
+
+    // Check for mobile
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    // Form State
+    const [description, setDescription] = useState('');
+    const [amount, setAmount] = useState('');
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!description || !amount || !date) return;
+
+        setIsSubmitting(true);
+        // Call Server Action
+        const result = await addExpense(classId, description, parseFloat(amount), new Date(date));
+
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to add expense');
+        }
+        setIsSubmitting(false);
+        setIsAdding(false);
+    };
+
+    const handleDelete = (id: string) => {
+        setDeleteConfirmation({ isOpen: true, expenseId: id });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirmation.expenseId) return;
+
+        const result = await deleteExpense(classId, deleteConfirmation.expenseId);
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to delete');
+        }
+        setDeleteConfirmation({ isOpen: false, expenseId: null });
+    };
+
+    // Calculate Totals
+    const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const thisMonthExpenses = expenses
+        .filter(e => {
+            const d = new Date(e.date);
+            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+        })
+        .reduce((sum, e) => sum + e.amount, 0);
 
     return (
         <div className="min-h-screen pb-20">
@@ -203,7 +236,18 @@ export default function ExpensesManager({ classId, initialExpenses }: { classId:
                         className="bg-white border border-slate-200 rounded-2xl p-6 mb-8 shadow-sm overflow-hidden"
                     >
                         <h3 className="font-bold text-lg text-slate-800 mb-4">Add New Expense</h3>
-                        <ExpenseForm />
+                        <ExpenseForm
+                            onSubmit={handleSubmit}
+                            description={description}
+                            setDescription={setDescription}
+                            amount={amount}
+                            setAmount={setAmount}
+                            date={date}
+                            setDate={setDate}
+                            isMobile={isMobile}
+                            onCancel={() => setIsAdding(false)}
+                            isSubmitting={isSubmitting}
+                        />
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -238,7 +282,18 @@ export default function ExpensesManager({ classId, initialExpenses }: { classId:
                                 </button>
                             </div>
                             <div className="pb-8">
-                                <ExpenseForm />
+                                <ExpenseForm
+                                    onSubmit={handleSubmit}
+                                    description={description}
+                                    setDescription={setDescription}
+                                    amount={amount}
+                                    setAmount={setAmount}
+                                    date={date}
+                                    setDate={setDate}
+                                    isMobile={isMobile}
+                                    onCancel={() => setIsAdding(false)}
+                                    isSubmitting={isSubmitting}
+                                />
                             </div>
                         </motion.div>
                     </>
@@ -326,6 +381,17 @@ export default function ExpensesManager({ classId, initialExpenses }: { classId:
                 </div>
 
             </div>
+
+            <ConfirmationModal
+                isOpen={deleteConfirmation.isOpen}
+                onClose={() => setDeleteConfirmation({ isOpen: false, expenseId: null })}
+                onConfirm={confirmDelete}
+                title="Delete Expense?"
+                message="Are you sure you want to delete this expense record? This action cannot be undone."
+                confirmText="Yes, Delete"
+                cancelText="Cancel"
+                isDangerous={true}
+            />
 
         </div>
     );

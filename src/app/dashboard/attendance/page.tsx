@@ -2,8 +2,9 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { Calendar, CheckCircle, XCircle } from "lucide-react";
-import Link from 'next/link';
+import AttendanceDateFilter from "@/components/dashboard/AttendanceDateFilter";
 import { format } from "date-fns";
+import Link from "next/link";
 
 export default async function AllAttendancePage({ searchParams }: { searchParams: { date?: string } }) {
     const supabase = createClient();
@@ -42,16 +43,7 @@ export default async function AllAttendancePage({ searchParams }: { searchParams
                     <h1 className="text-2xl font-bold text-slate-900">Attendance Overview</h1>
                     <p className="text-slate-500">{displayDate}</p>
                 </div>
-                <div className="flex gap-2">
-                    <input
-                        type="date"
-                        className="p-2 border rounded-lg"
-                        defaultValue={date}
-                    />
-                    {/* Note: Client side navigation needed for input change to reload page with new param, 
-                        skipping for simplicity in this MVP server component view 
-                    */}
-                </div>
+                <AttendanceDateFilter />
             </div>
 
             <div className="grid grid-cols-1 gap-6">
