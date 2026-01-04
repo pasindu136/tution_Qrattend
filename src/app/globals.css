@@ -6,7 +6,15 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
+
   .pt-safe {
     padding-top: env(safe-area-inset-top);
+  }
+}
+
+@media (max-width: 1024px) {
+  body {
+    padding-top: max(env(safe-area-inset-top), 25px);
+    /* Force status bar space */
   }
 }
