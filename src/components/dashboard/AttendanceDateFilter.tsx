@@ -15,7 +15,7 @@ export default function AttendanceDateFilter() {
                 value={date}
                 onChange={(e) => {
                     const newDate = e.target.value;
-                    const params = new URLSearchParams(searchParams);
+                    const params = new URLSearchParams(searchParams.toString());
                     params.set('date', newDate);
                     router.push(`?${params.toString()}`);
                 }}
