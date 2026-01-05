@@ -2,25 +2,14 @@
 'use client'
 
 import { login } from './actions'
-import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Loader2, ArrowLeft, Mail, Lock, LogIn } from 'lucide-react'
-
+import { ArrowLeft, Mail, Lock, LogIn } from 'lucide-react'
+import SubmitButton from '@/components/SubmitButton'
 
 export default function LoginPage({ searchParams }: { searchParams: { error?: string, message?: string } }) {
-    const [isLoading, setIsLoading] = useState(false)
     const error = searchParams.error
     const message = searchParams.message
-
-    async function handleSubmit(formData: FormData) {
-        setIsLoading(true)
-        try {
-            await login(formData)
-        } finally {
-            setIsLoading(false)
-        }
-    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-white relative overflow-hidden font-sans">
@@ -92,7 +81,7 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
                 )}
 
                 {/* Form */}
-                <form action={handleSubmit} className="space-y-6">
+                <form action={login} className="space-y-6">
 
                     <div className="space-y-2">
                         <label className="text-sm font-bold text-slate-700 ml-1">Email Address</label>
@@ -125,22 +114,11 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
                         </div>
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition-all transform hover:-translate-y-0.5 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
-                        {isLoading ? (
-                            <>
-                                <Loader2 className="animate-spin" size={20} />
-                                Signing in...
-                            </>
-                        ) : (
-                            <>
-                                Sign In <LogIn size={20} />
-                            </>
-                        )}
-                    </button>
+                    <SubmitButton
+                        text="Sign In"
+                        loadingText="Signing in..."
+                        icon={LogIn}
+                    />
 
                 </form>
 

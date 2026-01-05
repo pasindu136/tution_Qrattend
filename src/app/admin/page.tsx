@@ -186,7 +186,7 @@ export default async function AdminDashboard() {
                                                 {profile.role !== 'admin' && (
                                                     <>
                                                         <Link
-                                                            href={`/ admin / tutors / ${profile.id}?uid = ${profile.id} `}
+                                                            href={`/admin/tutors/${profile.id}`}
                                                             className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition shadow-sm"
                                                         >
                                                             Manage
@@ -246,7 +246,7 @@ export default async function AdminDashboard() {
 
                                     {profile.role !== 'admin' ? (
                                         <Link
-                                            href={`/ admin / tutors / ${profile.id}?uid = ${profile.id} `}
+                                            href={`/admin/tutors/${profile.id}`}
                                             className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-lg shadow-slate-900/20 flex items-center justify-center gap-2 active:scale-95 transition text-center"
                                         >
                                             Manage Dashboard

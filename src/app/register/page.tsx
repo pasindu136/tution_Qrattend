@@ -5,21 +5,12 @@ import { signup } from '../login/actions'
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Loader2, ArrowLeft, Mail, Lock, User, Phone } from 'lucide-react'
+import { ArrowLeft, Mail, Lock, User, Phone } from 'lucide-react'
+import SubmitButton from '@/components/SubmitButton'
 
 
 export default function RegisterPage({ searchParams }: { searchParams: { error?: string } }) {
-    const [isLoading, setIsLoading] = useState(false)
     const error = searchParams.error
-
-    async function handleSubmit(formData: FormData) {
-        setIsLoading(true)
-        try {
-            await signup(formData)
-        } finally {
-            setIsLoading(false)
-        }
-    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-white relative overflow-hidden font-sans py-10">
@@ -80,7 +71,7 @@ export default function RegisterPage({ searchParams }: { searchParams: { error?:
                 )}
 
                 {/* Form */}
-                <form action={handleSubmit} className="space-y-4">
+                <form action={signup} className="space-y-4">
 
                     <div className="space-y-1">
                         <label className="text-xs font-bold text-slate-700 ml-1">Full Name</label>
@@ -138,22 +129,11 @@ export default function RegisterPage({ searchParams }: { searchParams: { error?:
                         </div>
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg shadow-slate-900/20 transition-all transform hover:-translate-y-0.5 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 mt-2"
-                    >
-                        {isLoading ? (
-                            <>
-                                <Loader2 className="animate-spin" size={18} />
-                                Creating Account...
-                            </>
-                        ) : (
-                            <>
-                                Create Account
-                            </>
-                        )}
-                    </button>
+                    <SubmitButton
+                        text="Create Account"
+                        loadingText="Creating..."
+                        className="bg-slate-900 hover:bg-slate-800 shadow-slate-900/20"
+                    />
 
                 </form>
 
