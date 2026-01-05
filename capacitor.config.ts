@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.tuitionmanager.app',
-  appName: 'Tuition Manager',
+  appName: 'TuitionMate',
   webDir: 'public',
   server: {
     url: 'https://tution-management-nine.vercel.app',

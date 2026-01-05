@@ -1,14 +1,17 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt"; // Import
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: "TuitionMate - Manage Your Classes",
   description: "The ultimate student management system for tutors.",
+  manifest: '/manifest.json',
 };
 
 export const viewport = {
+  themeColor: '#1e40af',
   viewportFit: 'cover',
   width: 'device-width',
   initialScale: 1,
@@ -21,6 +24,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={inter.className}>
         {children}
+        <PWAInstallPrompt />
       </body>
     </html>
   );
