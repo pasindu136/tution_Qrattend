@@ -9,9 +9,17 @@ import EditClassModal from "./EditClassModal";
 
 export default async function ClassDetailsPage({ params: { id } }: { params: { id: string } }) {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    // Fetch Current User & Profile
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return redirect("/login");
 
-    if (!user) return redirect("/login");
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUser.id)
+        .single();
+
+    const isAdmin = profile?.role === 'admin';
 
     // Fetch Class Details
     const { data: classData, error } = await supabase
@@ -24,6 +32,8 @@ export default async function ClassDetailsPage({ params: { id } }: { params: { i
         return redirect("/dashboard");
     }
 
+    const isOwner = currentUser.id === classData.teacher_id;
+
     // Fetch Students Count
     const { count: studentCount } = await supabase
         .from("students")
@@ -32,11 +42,27 @@ export default async function ClassDetailsPage({ params: { id } }: { params: { i
 
     return (
         <div className="min-h-screen">
+            
+            {/* Admin Impersonation Warning */}
+            {isAdmin && !isOwner && (
+                <div className="bg-amber-100 border-b border-amber-200 px-6 py-3 text-amber-800 text-sm font-bold flex justify-between items-center mb-6 sticky top-0 z-40">
+                    <span className="flex items-center gap-2">
+                        <span>⚠️</span>
+                        You are viewing <span className="underline">another user's</span> class as Admin.
+                    </span>
+                    <Link href={`/admin/tutors/${classData.teacher_id}`} className="underline hover:text-amber-900">
+                        Back to Tutor Dashboard
+                    </Link>
+                </div>
+            )}
 
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                    <Link href="/dashboard" className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition">
+                    <Link 
+                        href={isAdmin && !isOwner ? `/admin/tutors/${classData.teacher_id}` : "/dashboard"} 
+                        className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition"
+                    >
                         <ArrowLeft size={20} />
                     </Link>
                     <div>

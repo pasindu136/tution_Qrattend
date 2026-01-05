@@ -17,7 +17,7 @@ export default async function FeesPage({ params: { id }, searchParams }: { param
     // Fetch Class Details (for fee amount)
     const { data: classData } = await supabase
         .from("classes")
-        .select("fee_amount")
+        .select("fee_amount, teacher_id")
         .eq("id", id)
         .single();
 
@@ -42,6 +42,8 @@ export default async function FeesPage({ params: { id }, searchParams }: { param
             students={students || []}
             initialMonth={selectedMonth}
             paymentsData={paymentsData || []}
+            ownerId={classData?.teacher_id}
+            currentUserId={user.id}
         />
     );
 }

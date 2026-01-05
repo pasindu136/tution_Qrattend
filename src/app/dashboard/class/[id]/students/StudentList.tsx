@@ -9,12 +9,16 @@ import { deleteStudent } from "./actions"
 import ClassNav from "@/components/dashboard/ClassNav"
 import ConfirmationModal from "@/components/ui/ConfirmationModal"
 
-export default function StudentList({ classId, initialStudents }: { classId: string, initialStudents: any[] }) {
+import { createClient } from "@/utils/supabase/client"
+
+export default function StudentList({ classId, initialStudents, ownerId, currentUserId }: { classId: string, initialStudents: any[], ownerId?: string, currentUserId?: string }) {
     const [students, setStudents] = useState(initialStudents)
     const [searchQuery, setSearchQuery] = useState("")
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingStudent, setEditingStudent] = useState<any>(null)
     const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean, studentId: string | null }>({ isOpen: false, studentId: null })
+
+    const isAdminView = ownerId && currentUserId && ownerId !== currentUserId;
 
     // Filter students locally for search
     const filteredStudents = initialStudents.filter(student =>
@@ -27,6 +31,19 @@ export default function StudentList({ classId, initialStudents }: { classId: str
     }
 
     async function confirmDelete() {
+        // Admin Confirmation for Delete
+        if (ownerId) {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.id !== ownerId) {
+                const confirmed = window.confirm("⚠️ ADMIN WARNING:\n\nYou are REMOVING a student from another user's class.\nThis action is irreversible.\nAre you absolutely sure?");
+                if (!confirmed) {
+                    setDeleteConfirmation({ isOpen: false, studentId: null });
+                    return;
+                }
+            }
+        }
+
         if (deleteConfirmation.studentId) {
             await deleteStudent(classId, deleteConfirmation.studentId)
             setDeleteConfirmation({ isOpen: false, studentId: null })
@@ -35,6 +52,19 @@ export default function StudentList({ classId, initialStudents }: { classId: str
 
     return (
         <div className="min-h-screen pb-20">
+
+            {/* Admin Banner */}
+            {isAdminView && (
+                <div className="bg-amber-100 border-b border-amber-200 px-6 py-3 text-amber-800 text-sm font-bold flex justify-between items-center mb-6 sticky top-0 z-40">
+                    <span className="flex items-center gap-2">
+                        <span>⚠️</span>
+                        You are viewing <span className="underline">another user's</span> student list.
+                    </span>
+                    <Link href={`/admin/tutors/${ownerId}`} className="underline hover:text-amber-900">
+                        Back to Tutor Dashboard
+                    </Link>
+                </div>
+            )}
             {/* Header */}
             <div className="flex items-center gap-4 mb-8">
                 <Link href={`/dashboard/class/${classId}`} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition">
@@ -200,6 +230,7 @@ export default function StudentList({ classId, initialStudents }: { classId: str
                 classId={classId}
                 student={editingStudent}
                 isOpen={isModalOpen}
+                ownerId={ownerId}
                 onClose={() => setIsModalOpen(false)}
             />
         </div>

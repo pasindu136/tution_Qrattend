@@ -27,7 +27,7 @@ export default async function DashboardView({ userId, isOwner = true }: { userId
             .order("created_at", { ascending: false }),
         supabase
             .from("profiles")
-            .select("full_name")
+            .select("full_name, next_billing_date, is_unlimited")
             .eq("id", userId)
             .single()
     ]);
@@ -65,8 +65,32 @@ export default async function DashboardView({ userId, isOwner = true }: { userId
 
     const name = profile?.full_name?.split(' ')[0] || "Tutor";
 
+    // Subscription Check
+    const nextBilling = profile?.next_billing_date ? new Date(profile.next_billing_date) : null;
+    const daysRemaining = nextBilling ? Math.ceil((nextBilling.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 30;
+    const showPaymentWarning = daysRemaining <= 5 && isOwner && !profile?.is_unlimited;
+
     return (
         <div className="pb-20">
+
+            {/* Payment Warning Banner */}
+            {showPaymentWarning && (
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-8 flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+                            <Banknote size={20} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-red-900 text-sm">Monthly Service Fee Due Soon</h3>
+                            <p className="text-red-700 text-xs mt-0.5">
+                                Your subscription expires in <span className="font-bold">{daysRemaining} days</span> ({nextBilling?.toLocaleDateString()}).
+                                Please make your payment to avoid automated account suspension.
+                            </p>
+                        </div>
+                    </div>
+                    {/* Optional: Add a "Pay Now" or "Contact Admin" button here */}
+                </div>
+            )}
 
             {/* 1. Improved Header */}
             <div className="flex flex-col gap-1 mb-8">
@@ -171,7 +195,7 @@ export default async function DashboardView({ userId, isOwner = true }: { userId
                     const textColor = textColors[colorIndex];
 
                     return (
-                        <Link key={cls.id} href={`/dashboard/class/${cls.id}`}>
+                        <Link key={cls.id} href={isOwner ? `/dashboard/class/${cls.id}` : `/dashboard/class/${cls.id}?uid=${userId}`}>
                             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all group cursor-pointer relative h-full">
 
                                 <div className="flex justify-between items-start mb-6">

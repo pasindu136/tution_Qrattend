@@ -14,18 +14,25 @@ export default function AttendanceManager({
     classId,
     students,
     initialDate,
-    attendanceData
+    attendanceData,
+    ownerId,
+    currentUserId
 }: {
     classId: string,
     students: any[],
     initialDate: string,
-    attendanceData: any[]
+    attendanceData: any[],
+    ownerId?: string,
+    currentUserId?: string
 }) {
     const router = useRouter()
     const [date, setDate] = useState(initialDate)
     const [searchQuery, setSearchQuery] = useState("")
     const [isSaving, setIsSaving] = useState(false)
     const [hasChanges, setHasChanges] = useState(false)
+
+    // Admin View Check
+    const isAdminView = ownerId && currentUserId && ownerId !== currentUserId;
 
     // Map StudentID -> Status
     const [localAttendance, setLocalAttendance] = useState<Record<string, string>>({})
@@ -68,6 +75,13 @@ export default function AttendanceManager({
 
     async function handleSave() {
         if (isSaving) return;
+
+        // Admin Confirmation
+        if (isAdminView) {
+            const confirmed = window.confirm("⚠️ ADMIN WARNING:\n\nYou are saving attendance for ANOTHER user's class.\nAre you sure you want to proceed?");
+            if (!confirmed) return;
+        }
+
         setIsSaving(true);
 
         const records = Object.entries(localAttendance).map(([studentId, status]) => ({
@@ -89,9 +103,21 @@ export default function AttendanceManager({
 
     return (
         <div className="min-h-screen pb-20">
+            {/* Admin Banner */}
+            {isAdminView && (
+                <div className="bg-amber-100 border-b border-amber-200 px-6 py-3 text-amber-800 text-sm font-bold flex justify-between items-center mb-6 sticky top-0 z-40">
+                    <span className="flex items-center gap-2">
+                        <span>⚠️</span>
+                        You are viewing <span className="underline">another user's</span> attendance.
+                    </span>
+                    <Link href={`/admin/tutors/${ownerId}`} className="underline hover:text-amber-900">
+                        Back to Tutor Dashboard
+                    </Link>
+                </div>
+            )}
             {/* Header */}
             <div className="flex items-center gap-4 mb-8">
-                <Link href={`/dashboard/class/${classId}`} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition">
+                <Link href={isAdminView ? `/admin/tutors/${ownerId}` : `/dashboard/class/${classId}`} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition">
                     <ArrowLeft size={20} />
                 </Link>
                 <div>

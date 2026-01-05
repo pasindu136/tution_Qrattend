@@ -7,6 +7,8 @@ import { Loader2, Settings, X, Trash2, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import ConfirmationModal from '@/components/ui/ConfirmationModal'
 
+import { createClient } from '@/utils/supabase/client'
+
 type ClassData = {
     id: string
     name: string
@@ -14,6 +16,7 @@ type ClassData = {
     day: string
     time: string
     fee_amount: number
+    teacher_id: string
 }
 
 export default function EditClassModal({ classData }: { classData: ClassData }) {
@@ -33,6 +36,14 @@ export default function EditClassModal({ classData }: { classData: ClassData }) 
     }, [])
 
     async function handleUpdate(formData: FormData) {
+        // Admin Confirmation
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.id !== classData.teacher_id) {
+            const confirmed = window.confirm("⚠️ ADMIN WARNING:\n\nYou are editing another user's class.\nAre you sure you want to proceed?");
+            if (!confirmed) return;
+        }
+
         setIsLoading(true)
         try {
             const result = await updateClass(classData.id, formData)
@@ -48,6 +59,17 @@ export default function EditClassModal({ classData }: { classData: ClassData }) 
     }
 
     async function executeDelete() {
+        // Admin Confirmation for Delete
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.id !== classData.teacher_id) {
+            const confirmed = window.confirm("⚠️ ADMIN WARNING:\n\nYou are DELETING another user's class.\nThis action is irreversible.\nAre you absolutely sure?");
+            if (!confirmed) {
+                setShowDeleteConfirm(false); // Close the regular modal if they cancel the admin warning
+                return;
+            }
+        }
+
         setIsDeleting(true)
         try {
             await deleteClass(classData.id)

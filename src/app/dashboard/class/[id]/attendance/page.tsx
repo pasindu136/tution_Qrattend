@@ -27,12 +27,21 @@ export default async function AttendancePage({ params: { id }, searchParams }: {
         .eq("class_id", id)
         .eq("date", selectedDate);
 
+    // Fetch Class Owner (for Admin Check)
+    const { data: classData } = await supabase
+        .from("classes")
+        .select("teacher_id")
+        .eq("id", id)
+        .single();
+
     return (
         <AttendanceManager
             classId={id}
             students={students || []}
             initialDate={selectedDate}
             attendanceData={attendanceData || []}
+            ownerId={classData?.teacher_id}
+            currentUserId={user.id}
         />
     );
 }

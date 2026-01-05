@@ -1,7 +1,7 @@
 
 import Link from "next/link";
-import { signOut } from "@/app/login/actions";
-import { LogOut, LayoutDashboard, Users, Banknote, Calendar } from "lucide-react";
+import { LayoutDashboard, Users, Banknote, Calendar } from "lucide-react";
+import SidebarProfile from "./SidebarProfile";
 
 export default function Sidebar({ user }: { user: any }) {
 
@@ -50,28 +50,7 @@ export default function Sidebar({ user }: { user: any }) {
 
 
       {/* 3. User Profile (Bottom) & Logout */}
-      <div className="p-4 border-t border-slate-800">
-        <div className="flex items-center justify-between gap-3 p-3 bg-slate-800 rounded-xl mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20">
-              {initials}
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm font-bold text-white truncate w-32">{name}</p>
-              <p className="text-xs text-blue-400 font-bold uppercase tracking-wider">Pro Plan</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Sign Out Button */}
-        <form action={signOut}>
-          <button type="submit" className="w-full flex items-center justify-center gap-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/10 py-3 rounded-lg transition-colors font-bold">
-            <LogOut size={16} />
-            Sign Out
-          </button>
-        </form>
-      </div>
-
+      <SidebarProfile initialUser={user} />
     </aside>
   );
 }

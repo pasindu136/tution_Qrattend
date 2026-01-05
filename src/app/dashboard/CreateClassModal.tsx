@@ -1,15 +1,18 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClass } from './actions'
 import { Loader2, Plus, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+
+import { createClient } from '@/utils/supabase/client'
 
 export default function CreateClassModal({ ownerId }: { ownerId?: string }) {
     const [isOpen, setIsOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
+    const router = useRouter()
 
     // Check for mobile
     useEffect(() => {
@@ -21,12 +24,24 @@ export default function CreateClassModal({ ownerId }: { ownerId?: string }) {
 
     async function handleSubmit(formData: FormData) {
         if (isLoading) return; // Prevent double submission
+
+        // Admin Confirmation Check
+        if (ownerId) {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.id !== ownerId) {
+                const confirmed = window.confirm("⚠️ ADMIN WARNING:\n\nYou are creating this class for another user.\nAre you sure you want to proceed?");
+                if (!confirmed) return;
+            }
+        }
+
         setIsLoading(true)
         try {
             // Pass ownerId to the server action
             const result = await createClass(formData, ownerId)
             if (result?.success) {
                 setIsOpen(false)
+                router.refresh()
             }
         } finally {
             setIsLoading(false)

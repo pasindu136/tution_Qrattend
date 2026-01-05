@@ -1,8 +1,9 @@
-
 import Sidebar from "@/components/dashboard/Sidebar";
 import MobileNav from "@/components/dashboard/MobileNav";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+
+import NotificationListener from "@/components/dashboard/NotificationListener";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -19,8 +20,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq('id', user.id)
     .single();
 
+  if (!profile?.is_approved) {
+    redirect("/pending"); // Or a specific "Suspended" page if we distinguish between new vs suspended.
+  }
+
+  // Check Subscription (Skip for Admin & Unlimited)
+  if (profile.role !== 'admin' && !profile.is_unlimited && profile.next_billing_date) {
+    const nextBilling = new Date(profile.next_billing_date);
+    if (new Date() > nextBilling) {
+      redirect("/subscription-expired");
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
+      <NotificationListener userId={user.id} />
 
       {/* 1. Sidebar (Fixed Left - Desktop Only) */}
       <Sidebar user={profile} />

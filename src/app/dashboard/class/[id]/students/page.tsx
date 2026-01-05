@@ -16,7 +16,19 @@ export default async function StudentsPage({ params: { id } }: { params: { id: s
         .eq("class_id", id)
         .order("joined_at", { ascending: false });
 
+    // Fetch Class Owner (for Admin Check)
+    const { data: classData } = await supabase
+        .from("classes")
+        .select("teacher_id")
+        .eq("id", id)
+        .single();
+
     return (
-        <StudentList classId={id} initialStudents={students || []} />
+        <StudentList
+            classId={id}
+            initialStudents={students || []}
+            ownerId={classData?.teacher_id}
+            currentUserId={user.id}
+        />
     );
 }

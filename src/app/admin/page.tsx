@@ -1,9 +1,10 @@
-
 import { createClient } from "@/utils/supabase/server";
 import { approveUser, deleteUser } from "./actions";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
+import SubscriptionManager from "@/components/admin/SubscriptionManager";
+import NotificationSender from "@/components/admin/NotificationSender"; // Import
 import { LogOut, Search, Filter, Users, UserCheck, Clock, Shield, ChevronRight, MoreVertical, LayoutGrid, GraduationCap } from "lucide-react";
 
 export default async function AdminDashboard() {
@@ -35,6 +36,7 @@ export default async function AdminDashboard() {
 
     return (
         <div className="min-h-screen bg-slate-50 pb-20">
+            <NotificationSender allUsers={profiles} /> {/* Add Notification Sender */}
             {/* Top Navigation Bar */}
             <div className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-30 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -131,7 +133,7 @@ export default async function AdminDashboard() {
                                     <th className="p-4 px-6 font-bold text-slate-900">User Details</th>
                                     <th className="p-4 font-bold text-slate-900">Role</th>
                                     <th className="p-4 font-bold text-slate-900">Status</th>
-                                    <th className="p-4 font-bold text-slate-900">Joined Date</th>
+                                    <th className="p-4 font-bold text-slate-900">Subscription</th>
                                     <th className="p-4 text-right font-bold text-slate-900">Actions</th>
                                 </tr>
                             </thead>
@@ -150,8 +152,8 @@ export default async function AdminDashboard() {
                                             </div>
                                         </td>
                                         <td className="p-4">
-                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${profile.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                                                }`}>
+                                            <span className={`px - 2.5 py - 1 rounded - full text - [10px] font - bold uppercase tracking - wider ${profile.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                                                } `}>
                                                 {profile.role}
                                             </span>
                                         </td>
@@ -171,31 +173,38 @@ export default async function AdminDashboard() {
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="p-4 text-slate-500 font-mono text-xs">
-                                            {new Date(profile.created_at).toLocaleDateString()}
+                                        <td className="p-4">
+                                            <SubscriptionManager
+                                                userId={profile.id}
+                                                initialDate={profile.next_billing_date}
+                                                isUnlimited={profile.is_unlimited}
+                                                role={profile.role}
+                                            />
                                         </td>
                                         <td className="p-4 text-right">
                                             <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {!profile.is_approved && (
-                                                    <form action={approveUser.bind(null, profile.id)}>
-                                                        <button className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-bold transition border border-green-200">
-                                                            Approve
-                                                        </button>
-                                                    </form>
-                                                )}
                                                 {profile.role !== 'admin' && (
                                                     <>
                                                         <Link
-                                                            href={`/admin/tutors/${profile.id}`}
+                                                            href={`/ admin / tutors / ${profile.id}?uid = ${profile.id} `}
                                                             className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition shadow-sm"
                                                         >
                                                             Manage
                                                         </Link>
-                                                        <form action={deleteUser.bind(null, profile.id)}>
-                                                            <button title="Suspend User" className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
-                                                                <LogOut size={16} className="rotate-180" />
-                                                            </button>
-                                                        </form>
+
+                                                        {profile.is_approved ? (
+                                                            <form action={deleteUser.bind(null, profile.id)}>
+                                                                <button className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold transition border border-red-200">
+                                                                    Suspend
+                                                                </button>
+                                                            </form>
+                                                        ) : (
+                                                            <form action={approveUser.bind(null, profile.id)}>
+                                                                <button className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-bold transition border border-green-200">
+                                                                    Approve
+                                                                </button>
+                                                            </form>
+                                                        )}
                                                     </>
                                                 )}
                                             </div>
@@ -220,8 +229,8 @@ export default async function AdminDashboard() {
                                             <p className="text-xs text-slate-500 font-sans">{profile.email}</p>
                                         </div>
                                     </div>
-                                    <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${profile.is_approved ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-                                        }`}>
+                                    <span className={`px - 2 py - 1 rounded - lg text - [10px] font - bold uppercase tracking - wider ${profile.is_approved ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                                        } `}>
                                         {profile.is_approved ? 'Active' : 'Pending'}
                                     </span>
                                 </div>
@@ -237,7 +246,7 @@ export default async function AdminDashboard() {
 
                                     {profile.role !== 'admin' ? (
                                         <Link
-                                            href={`/admin/tutors/${profile.id}`}
+                                            href={`/ admin / tutors / ${profile.id}?uid = ${profile.id} `}
                                             className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-lg shadow-slate-900/20 flex items-center justify-center gap-2 active:scale-95 transition text-center"
                                         >
                                             Manage Dashboard

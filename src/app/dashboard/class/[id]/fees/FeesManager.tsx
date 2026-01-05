@@ -13,17 +13,24 @@ export default function FeesManager({
     classFee,
     students,
     initialMonth,
-    paymentsData
+    paymentsData,
+    ownerId,
+    currentUserId
 }: {
     classId: string,
     classFee: number,
     students: any[],
     initialMonth: string,
-    paymentsData: any[]
+    paymentsData: any[],
+    ownerId?: string,
+    currentUserId?: string
 }) {
     const [month, setMonth] = useState(initialMonth)
     const [searchQuery, setSearchQuery] = useState("")
     const [processingId, setProcessingId] = useState<string | null>(null)
+
+    // Admin View Check
+    const isAdminView = ownerId && currentUserId && ownerId !== currentUserId;
 
     // Filter students
     const filteredStudents = students.filter(student =>
@@ -42,6 +49,13 @@ export default function FeesManager({
 
     async function handleMarkPaid(studentId: string) {
         if (processingId) return;
+
+        // Admin Confirmation
+        if (isAdminView) {
+            const confirmed = window.confirm("⚠️ ADMIN WARNING:\n\nYou are recording a payment for ANOTHER user's student.\nAre you sure you want to proceed?");
+            if (!confirmed) return;
+        }
+
         setProcessingId(studentId)
 
         try {
@@ -53,7 +67,13 @@ export default function FeesManager({
     }
 
     async function handleRemovePayment(paymentId: string) {
-        if (!confirm("Are you sure you want to remove this payment record?")) return;
+        let message = "Are you sure you want to remove this payment record?";
+        if (isAdminView) {
+            message = "⚠️ ADMIN WARNING:\n\nYou are REMOVING a payment from ANOTHER user's class.\nThis action is irreversible.\nAre you absolutely sure?";
+        }
+
+        if (!confirm(message)) return;
+
         if (processingId) return;
         setProcessingId(paymentId) // Use payment ID as loading state key just to block actions
 
@@ -66,9 +86,22 @@ export default function FeesManager({
 
     return (
         <div className="min-h-screen pb-20">
+            {/* Admin Banner */}
+            {isAdminView && (
+                <div className="bg-amber-100 border-b border-amber-200 px-6 py-3 text-amber-800 text-sm font-bold flex justify-between items-center mb-6 sticky top-0 z-40">
+                    <span className="flex items-center gap-2">
+                        <span>⚠️</span>
+                        You are viewing <span className="underline">another user's</span> fees.
+                    </span>
+                    <Link href={`/admin/tutors/${ownerId}`} className="underline hover:text-amber-900">
+                        Back to Tutor Dashboard
+                    </Link>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center gap-4 mb-8">
-                <Link href={`/dashboard/class/${classId}`} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition">
+                <Link href={isAdminView ? `/admin/tutors/${ownerId}` : `/dashboard/class/${classId}`} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition">
                     <ArrowLeft size={20} />
                 </Link>
                 <div>

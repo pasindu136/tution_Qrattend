@@ -112,12 +112,25 @@ function ExpenseForm({
     );
 }
 
-export default function ExpensesManager({ classId, initialExpenses }: { classId: string, initialExpenses: Expense[] }) {
+export default function ExpensesManager({
+    classId,
+    initialExpenses,
+    ownerId,
+    currentUserId
+}: {
+    classId: string,
+    initialExpenses: Expense[],
+    ownerId?: string,
+    currentUserId?: string
+}) {
     const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
     const [isAdding, setIsAdding] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean, expenseId: string | null }>({ isOpen: false, expenseId: null });
+
+    // Admin View Check
+    const isAdminView = ownerId && currentUserId && ownerId !== currentUserId;
 
     // Check for mobile
     useEffect(() => {
@@ -135,6 +148,12 @@ export default function ExpensesManager({ classId, initialExpenses }: { classId:
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!description || !amount || !date) return;
+
+        // Admin Confirmation
+        if (isAdminView) {
+            const confirmed = window.confirm("⚠️ ADMIN WARNING:\n\nYou are adding an expense to ANOTHER user's class.\nAre you sure you want to proceed?");
+            if (!confirmed) return;
+        }
 
         setIsSubmitting(true);
         // Call Server Action
@@ -155,6 +174,15 @@ export default function ExpensesManager({ classId, initialExpenses }: { classId:
 
     const confirmDelete = async () => {
         if (!deleteConfirmation.expenseId) return;
+
+        // Admin Confirmation
+        if (isAdminView) {
+            const confirmed = window.confirm("⚠️ ADMIN WARNING:\n\nYou are DELETING an expense from ANOTHER user's class.\nThis action is irreversible.\nAre you absolutely sure?");
+            if (!confirmed) {
+                setDeleteConfirmation({ isOpen: false, expenseId: null });
+                return;
+            }
+        }
 
         const result = await deleteExpense(classId, deleteConfirmation.expenseId);
         if (result.success) {
@@ -178,9 +206,22 @@ export default function ExpensesManager({ classId, initialExpenses }: { classId:
 
     return (
         <div className="min-h-screen pb-20">
+            {/* Admin Banner */}
+            {isAdminView && (
+                <div className="bg-amber-100 border-b border-amber-200 px-6 py-3 text-amber-800 text-sm font-bold flex justify-between items-center mb-6 sticky top-0 z-40">
+                    <span className="flex items-center gap-2">
+                        <span>⚠️</span>
+                        You are viewing <span className="underline">another user's</span> expenses.
+                    </span>
+                    <Link href={`/admin/tutors/${ownerId}`} className="underline hover:text-amber-900">
+                        Back to Tutor Dashboard
+                    </Link>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center gap-4 mb-8">
-                <Link href={`/dashboard/class/${classId}`} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition">
+                <Link href={isAdminView ? `/admin/tutors/${ownerId}` : `/dashboard/class/${classId}`} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition">
                     <ArrowLeft size={20} />
                 </Link>
                 <div>

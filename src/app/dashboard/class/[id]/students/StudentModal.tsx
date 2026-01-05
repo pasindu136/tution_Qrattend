@@ -6,16 +6,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { addStudent, updateStudent } from './actions'
 import { Loader2, Plus, X, Save, User } from 'lucide-react'
 
+import { createClient } from '@/utils/supabase/client'
+
 export default function StudentModal({
     classId,
     student = null,
     isOpen,
-    onClose
+    onClose,
+    ownerId
 }: {
     classId: string,
     student?: any,
     isOpen: boolean,
-    onClose: () => void
+    onClose: () => void,
+    ownerId?: string
 }) {
     const [isLoading, setIsLoading] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
@@ -33,6 +37,18 @@ export default function StudentModal({
 
     async function handleSubmit(formData: FormData) {
         if (isLoading) return;
+
+        // Admin Confirmation
+        if (ownerId) {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.id !== ownerId) {
+                const action = student ? "EDITING" : "ADDING";
+                const confirmed = window.confirm(`⚠️ ADMIN WARNING:\n\nYou are ${action} a student for another user.\nAre you sure you want to proceed?`);
+                if (!confirmed) return;
+            }
+        }
+
         setIsLoading(true)
         try {
             let result;
@@ -70,8 +86,8 @@ export default function StudentModal({
                         exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95 }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
                         className={`fixed z-[100] bg-white p-6 shadow-2xl ${isMobile
-                                ? 'bottom-0 left-0 right-0 w-full rounded-t-3xl pb-12'
-                                : 'inset-0 m-auto w-full max-w-md h-fit rounded-2xl'
+                            ? 'bottom-0 left-0 right-0 w-full rounded-t-3xl pb-12'
+                            : 'inset-0 m-auto w-full max-w-md h-fit rounded-2xl'
                             }`}
                     >
                         <div className="flex justify-between items-center mb-6">
