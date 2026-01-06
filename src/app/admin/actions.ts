@@ -123,3 +123,53 @@ export async function markNotificationAsRead(notificationId: string) {
 
     revalidatePath('/dashboard')
 }
+
+export async function deleteNotification(notificationId: string) {
+    const supabase = createClient();
+
+    // Check if user is admin (optional safety, RLS policy should handle too)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error, count } = await supabase
+        .from('notifications')
+        .delete({ count: 'exact' })
+        .eq('id', notificationId);
+
+    if (error) {
+        console.error("Error deleting notification:", error);
+        throw new Error("Failed to delete notification");
+    }
+
+    if (count === 0) {
+        throw new Error("Could not delete notification. It may not exist or you don't have permission.");
+    }
+
+    revalidatePath('/admin');
+}
+
+export async function getSentNotifications() {
+    const supabase = createClient();
+
+    // Fetch last 50 notifications
+    // Join with profiles to get Recipient Name
+    const { data, error } = await supabase
+        .from('notifications')
+        .select(`
+            *,
+            profiles:user_id (full_name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+    if (error) return [];
+
+    // Simplify structure
+    return data.map((n: any) => ({
+        id: n.id,
+        message: n.message,
+        created_at: n.created_at,
+        is_read: n.is_read,
+        recipient_name: n.profiles?.full_name || 'Unknown'
+    }));
+}

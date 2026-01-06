@@ -279,7 +279,9 @@ export default async function DashboardView({ userId, isOwner = true }: { userId
                         </div>
                         <h3 className="text-lg font-bold text-slate-900 mb-1">No classes yet</h3>
                         <p className="text-slate-500 text-sm mb-6">Get started by creating your first class to manage students.</p>
-                        <CreateClassModal ownerId={userId} />
+                        <div className="flex justify-center">
+                            <CreateClassModal ownerId={userId} />
+                        </div>
                     </div>
                 )}
             </div>

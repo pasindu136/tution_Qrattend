@@ -10,13 +10,22 @@ export async function updateClass(classId: string, formData: FormData) {
 
     if (!user) return { error: "Unauthorized" }
 
+    // Check Role
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    const isAdmin = profile?.role === 'admin'
+
     const name = formData.get('name') as string
     const subject = formData.get('subject') as string
     const day = formData.get('day') as string
     const time = formData.get('time') as string
     const fee = formData.get('fee') as string
 
-    const { error } = await supabase
+    let query = supabase
         .from('classes')
         .update({
             name,
@@ -26,7 +35,13 @@ export async function updateClass(classId: string, formData: FormData) {
             fee_amount: parseFloat(fee)
         })
         .eq('id', classId)
-        .eq('teacher_id', user.id) // Ensure ownership
+
+    // Only enforce ownership if NOT admin
+    if (!isAdmin) {
+        query = query.eq('teacher_id', user.id)
+    }
+
+    const { error } = await query
 
     if (error) {
         console.error('Error updating class:', error)
@@ -35,6 +50,12 @@ export async function updateClass(classId: string, formData: FormData) {
 
     revalidatePath(`/dashboard/class/${classId}`)
     revalidatePath('/dashboard')
+
+    // If Admin, revalidate their view too
+    if (isAdmin) {
+        revalidatePath('/admin/tutors/[id]', 'page')
+    }
+
     return { success: true }
 }
 
@@ -44,11 +65,28 @@ export async function deleteClass(classId: string) {
 
     if (!user) return { error: "Unauthorized" }
 
-    const { error } = await supabase
+    // Fetch Class Owner & Current User Role
+    const [profileResult, classResult] = await Promise.all([
+        supabase.from('profiles').select('role').eq('id', user.id).single(),
+        supabase.from('classes').select('teacher_id').eq('id', classId).single()
+    ])
+
+    const isAdmin = profileResult.data?.role === 'admin'
+    const teacherId = classResult.data?.teacher_id
+
+    if (!teacherId) return { error: "Class not found" }
+
+    let query = supabase
         .from('classes')
         .delete()
         .eq('id', classId)
-        .eq('teacher_id', user.id)
+
+    // Enforce ownership if NOT admin
+    if (!isAdmin) {
+        query = query.eq('teacher_id', user.id)
+    }
+
+    const { error } = await query
 
     if (error) {
         console.error('Error deleting class:', error)
@@ -56,8 +94,10 @@ export async function deleteClass(classId: string) {
     }
 
     revalidatePath('/dashboard')
-    // We cannot redirect inside a try-catch block securely if we were using one, but here it's fine.
-    // However, it is better to return success and let client redirect, or redirect here.
-    // Server actions redirect works.
-    redirect('/dashboard')
+
+    if (isAdmin) {
+        redirect(`/admin/tutors/${teacherId}`)
+    } else {
+        redirect('/dashboard')
+    }
 }

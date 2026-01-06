@@ -1,15 +1,38 @@
 'use client';
 
-import { useState } from 'react';
-import { sendNotification } from '@/app/admin/actions';
-import { Bell, Send, Users, CheckSquare, Square, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { sendNotification, deleteNotification, getSentNotifications } from '@/app/admin/actions';
+import { Bell, Send, Users, CheckSquare, Square, X, History, Trash2, Clock, CheckCircle2 } from 'lucide-react';
 
 export default function NotificationSender({ allUsers }: { allUsers: any[] }) {
     const [isOpen, setIsOpen] = useState(false);
+
+    // Check Mobile for UI adjustments if needed, though modal is responsive
+    const [activeTab, setActiveTab] = useState<'send' | 'history'>('send');
+
+    // Send State
     const [message, setMessage] = useState('');
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [selectAll, setSelectAll] = useState(false);
     const [isSending, setIsSending] = useState(false);
+
+    // History State
+    const [history, setHistory] = useState<any[]>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+    // Load History when tab changes
+    useEffect(() => {
+        if (isOpen && activeTab === 'history') {
+            loadHistory();
+        }
+    }, [isOpen, activeTab]);
+
+    const loadHistory = async () => {
+        setIsLoadingHistory(true);
+        const data = await getSentNotifications();
+        setHistory(data);
+        setIsLoadingHistory(false);
+    };
 
     const toggleUser = (userId: string) => {
         setSelectedUsers(prev =>
@@ -31,16 +54,31 @@ export default function NotificationSender({ allUsers }: { allUsers: any[] }) {
         setIsSending(true);
         try {
             await sendNotification(selectedUsers, message);
-            setIsOpen(false);
             setMessage('');
             setSelectedUsers([]);
             setSelectAll(false);
             alert("Notifications sent successfully!");
+            setActiveTab('history'); // Switch to history to see it
         } catch (e) {
             console.error(e);
             alert("Failed to send.");
         } finally {
             setIsSending(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this notification?")) return;
+
+        // Optimistic update
+        setHistory(prev => prev.filter(n => n.id !== id));
+
+        try {
+            await deleteNotification(id);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to delete.");
+            loadHistory(); // Revert on failure
         }
     };
 
@@ -58,80 +96,151 @@ export default function NotificationSender({ allUsers }: { allUsers: any[] }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-            <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                        <Send size={20} className="text-blue-600" />
-                        Send Notification
-                    </h2>
-                    <button onClick={() => setIsOpen(false)} className="p-2 bg-white rounded-xl hover:bg-red-50 hover:text-red-500 transition shadow-sm border border-slate-100">
-                        <X size={20} />
-                    </button>
-                </div>
+            <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
 
-                <div className="p-6 overflow-y-auto flex-1">
-                    <div className="mb-6">
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Message</label>
-                        <textarea
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            className="w-full h-32 p-4 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition resize-none text-slate-700 font-medium"
-                            placeholder="Type your announcement here..."
-                        />
+                {/* Header with Tabs */}
+                <div className="p-0 bg-slate-50 border-b border-slate-100">
+                    <div className="flex justify-between items-center p-6 pb-2">
+                        <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900">
+                            <Send size={20} className="text-blue-600" />
+                            Notifications
+                        </h2>
+                        <button onClick={() => setIsOpen(false)} className="p-2 bg-white rounded-xl hover:bg-red-50 hover:text-red-500 transition shadow-sm border border-slate-100">
+                            <X size={20} />
+                        </button>
                     </div>
 
-                    <div>
-                        <div className="flex justify-between items-center mb-4">
-                            <label className="text-sm font-bold text-slate-700">Recipients ({selectedUsers.length})</label>
-                            <button
-                                onClick={handleSelectAll}
-                                className="text-xs font-bold flex items-center gap-1.5 text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-lg transition"
-                            >
-                                {selectAll ? <CheckSquare size={14} /> : <Square size={14} />}
-                                Select All
-                            </button>
-                        </div>
+                    <div className="flex px-6 space-x-6">
+                        <button
+                            onClick={() => setActiveTab('send')}
+                            className={`pb-3 text-sm font-bold border-b-2 transition ${activeTab === 'send' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                        >
+                            Send New
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('history')}
+                            className={`pb-3 text-sm font-bold border-b-2 transition ${activeTab === 'history' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                        >
+                            Sent History
+                        </button>
+                    </div>
+                </div>
 
-                        <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                            {allUsers.filter(u => u.role !== 'admin').map(user => (
-                                <div
-                                    key={user.id}
-                                    onClick={() => toggleUser(user.id)}
-                                    className={`p-3 rounded-xl border cursor-pointer transition flex items-center gap-3 ${selectedUsers.includes(user.id)
-                                            ? 'bg-blue-50 border-blue-200 shadow-sm'
-                                            : 'bg-white border-slate-100 hover:border-blue-100 hover:bg-slate-50'
-                                        }`}
-                                >
-                                    <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition ${selectedUsers.includes(user.id) ? 'bg-blue-500 border-blue-500 text-white' : 'border-slate-300 bg-white'
-                                        }`}>
-                                        {selectedUsers.includes(user.id) && <Users size={12} />}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-slate-900">{user.full_name}</p>
-                                        <p className="text-xs text-slate-500">{user.email}</p>
-                                    </div>
+                {/* Content */}
+                <div className="p-6 overflow-y-auto flex-1 bg-white">
+
+                    {activeTab === 'send' ? (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div className="mb-6">
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Message</label>
+                                <textarea
+                                    value={message}
+                                    onChange={(e) => setMessage(e.target.value)}
+                                    className="w-full h-32 p-4 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition resize-none text-slate-700 font-medium"
+                                    placeholder="Type your announcement here..."
+                                />
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between items-center mb-4">
+                                    <label className="text-sm font-bold text-slate-700">Recipients ({selectedUsers.length})</label>
+                                    <button
+                                        onClick={handleSelectAll}
+                                        className="text-xs font-bold flex items-center gap-1.5 text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-lg transition"
+                                    >
+                                        {selectAll ? <CheckSquare size={14} /> : <Square size={14} />}
+                                        Select All
+                                    </button>
                                 </div>
-                            ))}
+
+                                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                    {allUsers.filter(u => u.role !== 'admin').map(user => (
+                                        <div
+                                            key={user.id}
+                                            onClick={() => toggleUser(user.id)}
+                                            className={`p-3 rounded-xl border cursor-pointer transition flex items-center gap-3 ${selectedUsers.includes(user.id)
+                                                ? 'bg-blue-50 border-blue-200 shadow-sm'
+                                                : 'bg-white border-slate-100 hover:border-blue-100 hover:bg-slate-50'
+                                                }`}
+                                        >
+                                            <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition ${selectedUsers.includes(user.id) ? 'bg-blue-500 border-blue-500 text-white' : 'border-slate-300 bg-white'
+                                                }`}>
+                                                {selectedUsers.includes(user.id) && <Users size={12} />}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-900">{user.full_name}</p>
+                                                <p className="text-xs text-slate-500">{user.email}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            {isLoadingHistory ? (
+                                <div className="flex justify-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                </div>
+                            ) : history.length === 0 ? (
+                                <div className="text-center py-10 text-slate-400">
+                                    <History size={48} className="mx-auto mb-3 opacity-20" />
+                                    <p>No message history found.</p>
+                                </div>
+                            ) : (
+                                history.map((item) => (
+                                    <div key={item.id} className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-3 group hover:border-blue-100 transition">
+                                        <div className="shrink-0 w-8 h-8 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm">
+                                            <Users size={14} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-start">
+                                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">
+                                                    To: {item.recipient_name}
+                                                </p>
+                                                <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                                                    {new Date(item.created_at).toLocaleDateString()}
+                                                    {item.is_read ? <CheckCircle2 size={12} className="text-green-500" /> : <Clock size={12} />}
+                                                </span>
+                                            </div>
+                                            <p className="text-sm font-medium text-slate-800 leading-snug">
+                                                {item.message}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDelete(item.id)}
+                                            className="self-center p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                                            title="Delete Notification"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    )}
+
                 </div>
 
-                <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-                    <button
-                        onClick={() => setIsOpen(false)}
-                        className="px-6 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSend}
-                        disabled={isSending || !message || selectedUsers.length === 0}
-                        className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition shadow-lg shadow-slate-900/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                        <Send size={18} />
-                        {isSending ? 'Sending...' : 'Send Now'}
-                    </button>
-                </div>
+                {/* Footer only for Send Tab */}
+                {activeTab === 'send' && (
+                    <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                        <button
+                            onClick={() => setIsOpen(false)}
+                            className="px-6 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSend}
+                            disabled={isSending || !message || selectedUsers.length === 0}
+                            className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition shadow-lg shadow-slate-900/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                            <Send size={18} />
+                            {isSending ? 'Sending...' : 'Send Now'}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
