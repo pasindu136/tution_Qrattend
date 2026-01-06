@@ -2,7 +2,7 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import MobileNav from "@/components/dashboard/MobileNav";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-
+import PullToRefresh from "@/components/ui/PullToRefresh";
 import NotificationListener from "@/components/dashboard/NotificationListener";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -21,7 +21,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .single();
 
   if (!profile?.is_approved) {
-    redirect("/pending"); // Or a specific "Suspended" page if we distinguish between new vs suspended.
+    redirect("/pending");
   }
 
   // Check Subscription (Skip for Admin & Unlimited)
@@ -41,7 +41,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
       {/* 2. Main Content Area */}
       <main className="flex-1 lg:ml-64 p-4 md:p-8 overflow-y-auto mb-20 lg:mb-0">
-        {children}
+        <PullToRefresh>
+          {children}
+        </PullToRefresh>
       </main>
 
       {/* 3. Mobile Navigation (Fixed Bottom - Mobile Only) */}

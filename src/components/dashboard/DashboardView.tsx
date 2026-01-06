@@ -107,8 +107,45 @@ export default async function DashboardView({ userId, isOwner = true }: { userId
                 </div>
             </div>
 
-            {/* 2. Horizontal Stats Scroll (Mobile Friendly) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+            {/* 2. Mobile Stats (Compact & Single Row) */}
+            <div className="grid grid-cols-3 gap-3 mb-8 md:hidden">
+                {/* Students */}
+                <div className="bg-white p-3 py-4 rounded-2xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center text-center">
+                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg mb-2">
+                        <Users size={16} />
+                    </div>
+                    <span className="text-xl font-bold text-slate-900 leading-none mb-1">
+                        {classes?.reduce((acc: number, cls: any) => acc + (cls.students?.[0]?.count || 0), 0) || 0}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Students</span>
+                </div>
+
+                {/* Income */}
+                <div className="bg-white p-3 py-4 rounded-2xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center text-center">
+                    <div className="p-2 bg-green-50 text-green-600 rounded-lg mb-2">
+                        <Banknote size={16} />
+                    </div>
+                    <span className="text-lg font-bold text-slate-900 leading-none mb-1 flex items-center justify-center">
+                        <span className="text-[10px] text-slate-400 mr-0.5">LKR</span>
+                        {(netRevenue / 1000).toFixed(1)}k
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Net</span>
+                </div>
+
+                {/* Classes */}
+                <div className="bg-white p-3 py-4 rounded-2xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center text-center">
+                    <div className="p-2 bg-purple-50 text-purple-600 rounded-lg mb-2">
+                        <GraduationCap size={16} />
+                    </div>
+                    <span className="text-xl font-bold text-slate-900 leading-none mb-1">
+                        {classes?.length || 0}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active</span>
+                </div>
+            </div>
+
+            {/* 2. Desktop Stats (Original - Hidden on Mobile) */}
+            <div className="hidden md:grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
                 {/* Stats Card 1 */}
                 <div className="min-w-[260px] lg:min-w-0 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between h-32 relative overflow-hidden group">
                     <div className="absolute right-0 top-0 w-24 h-24 bg-blue-50 rounded-full -mr-6 -mt-6 group-hover:scale-110 transition-transform"></div>

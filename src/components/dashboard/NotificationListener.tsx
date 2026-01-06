@@ -70,46 +70,42 @@ export default function NotificationListener({ userId }: { userId: string }) {
 
     if (!isOpen || notifications.length === 0) return null;
 
-    // Mobile: Modal / Popup
+    // Mobile: Top "Popup" Toast (Sleek & Non-intrusive)
     if (isMobile) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-300">
-                <div className="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-                    <div className="bg-blue-600 p-6 text-white text-center">
-                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
-                            <Bell size={32} className="text-white fill-white" />
+            <div className="fixed top-0 left-4 right-4 z-[100] pt-safe flex flex-col items-center gap-3 pointer-events-none mt-4">
+                {notifications.map((n, index) => (
+                    <div
+                        key={n.id}
+                        className="w-full max-w-sm bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl shadow-slate-900/10 border border-slate-100 animate-in slide-in-from-top duration-500 pointer-events-auto flex gap-4 items-start ring-1 ring-black/5"
+                        style={{ marginTop: index !== 0 ? '-10px' : '0', scale: `${1 - (index * 0.05)}`, opacity: `${1 - (index * 0.2)}`, display: index > 2 ? 'none' : 'flex' }}
+                    >
+                        <div className="shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white shadow-sm">
+                            <Bell size={18} />
                         </div>
-                        <h2 className="text-2xl font-bold">New Notification</h2>
-                        <p className="opacity-90 mt-1 text-sm font-medium">You have important updates</p>
-                    </div>
 
-                    <div className="p-6 max-h-[60vh] overflow-y-auto">
-                        <div className="space-y-4">
-                            {notifications.map(n => (
-                                <div key={n.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                    <p className="text-slate-700 font-medium text-sm leading-relaxed">{n.message}</p>
-                                    <div className="mt-3 flex justify-end">
-                                        <button
-                                            onClick={() => handleMarkAsRead(n.id)}
-                                            className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:bg-blue-50 px-2 py-1 rounded-lg transition"
-                                        >
-                                            <Check size={14} /> Mark as Read
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start mb-1">
+                                <h3 className="font-bold text-slate-900 text-sm">New Notification</h3>
+                                <button
+                                    onClick={() => handleMarkAsRead(n.id)}
+                                    className="text-slate-400 hover:text-slate-600 p-1 -mr-2 -mt-2"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+                            <p className="text-sm text-slate-600 font-medium leading-relaxed line-clamp-3">
+                                {n.message}
+                            </p>
+                            <button
+                                onClick={() => handleMarkAsRead(n.id)}
+                                className="mt-2 text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50/50 px-2 py-1 rounded-lg w-fit transition"
+                            >
+                                <Check size={14} /> Mark as Read
+                            </button>
                         </div>
                     </div>
-
-                    <div className="p-4 bg-slate-50 border-t border-slate-100">
-                        <button
-                            onClick={handleDismiss}
-                            className="w-full py-3.5 bg-slate-900 text-white font-bold rounded-xl active:scale-95 transition shadow-lg shadow-slate-900/10"
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
+                ))}
             </div>
         );
     }
