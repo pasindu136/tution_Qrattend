@@ -3,6 +3,43 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function sendEmail(emails: string[], subject: string, message: string) {
+    if (!process.env.RESEND_API_KEY) {
+        console.error("Missing RESEND_API_KEY");
+        throw new Error("Server config error: RESEND_API_KEY Missing. Please restart the terminal.");
+    }
+
+    if (!emails.length || !message.trim()) return;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: 'TuitionMate <updates@bitsync.site>',
+            to: emails,
+            subject: subject || 'New Announcement',
+            html: `<div style="font-family: sans-serif; color: #333;">
+                    <h2>Hello from TuitionMate</h2>
+                    <p>${message.replace(/\n/g, '<br>')}</p>
+                    <hr />
+                    <p style="font-size: 12px; color: #888;">You are receiving this email from your tuition management admin.</p>
+                   </div>`
+        });
+
+        if (error) {
+            console.error("Resend API Error:", error);
+            throw new Error(`Resend Error: ${error.message} (${error.name})`);
+        }
+
+        return { success: true, data };
+    } catch (e: any) {
+        console.error("Email Sending Exception:", e);
+        // Throw actual error message for UI to display
+        throw new Error(e.message || "Failed to send email");
+    }
+}
 
 export async function approveUser(userId: string) {
     const supabase = createClient()

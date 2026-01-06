@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import NotificationListener from "@/components/dashboard/NotificationListener";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -33,22 +34,24 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
-      <NotificationListener userId={user.id} />
+    <LanguageProvider>
+      <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
+        <NotificationListener userId={user.id} />
 
-      {/* 1. Sidebar (Fixed Left - Desktop Only) */}
-      <Sidebar user={profile} />
+        {/* 1. Sidebar (Fixed Left - Desktop Only) */}
+        <Sidebar user={profile} />
 
-      {/* 2. Main Content Area */}
-      <main className="flex-1 lg:ml-64 p-4 md:p-8 overflow-y-auto mb-20 lg:mb-0">
-        <PullToRefresh>
-          {children}
-        </PullToRefresh>
-      </main>
+        {/* 2. Main Content Area */}
+        <main className="flex-1 lg:ml-64 p-4 md:p-8 overflow-y-auto mb-20 lg:mb-0">
+          <PullToRefresh>
+            {children}
+          </PullToRefresh>
+        </main>
 
-      {/* 3. Mobile Navigation (Fixed Bottom - Mobile Only) */}
-      <MobileNav user={profile} />
+        {/* 3. Mobile Navigation (Fixed Bottom - Mobile Only) */}
+        <MobileNav user={profile} />
 
-    </div>
+      </div>
+    </LanguageProvider>
   );
 }

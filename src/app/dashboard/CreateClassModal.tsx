@@ -5,14 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { createClass } from './actions'
 import { Loader2, Plus, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-
 import { createClient } from '@/utils/supabase/client'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function CreateClassModal({ ownerId }: { ownerId?: string }) {
     const [isOpen, setIsOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const router = useRouter()
+    const { t } = useLanguage()
 
     // Check for mobile
     useEffect(() => {
@@ -30,7 +31,7 @@ export default function CreateClassModal({ ownerId }: { ownerId?: string }) {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
             if (user && user.id !== ownerId) {
-                const confirmed = window.confirm("⚠️ ADMIN WARNING:\n\nYou are creating this class for another user.\nAre you sure you want to proceed?");
+                const confirmed = window.confirm(`⚠️ ${t.modals.admin_warning}:\n\n${t.modals.admin_warning_desc}`);
                 if (!confirmed) return;
             }
         }
@@ -55,7 +56,7 @@ export default function CreateClassModal({ ownerId }: { ownerId?: string }) {
                 className="bg-blue-600 hover:bg-blue-700 text-white p-3 lg:px-6 lg:py-3 rounded-full lg:rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-600/20 transition-transform active:scale-95"
             >
                 <Plus size={24} className="lg:hidden" /> {/* Mobile Icon */}
-                <span className="hidden lg:flex items-center gap-2"><Plus size={20} /> Create New Class</span> {/* Desktop Text */}
+                <span className="hidden lg:flex items-center gap-2"><Plus size={20} /> {t.modals.create_class}</span> {/* Desktop Text */}
             </button>
 
             <AnimatePresence>
@@ -82,7 +83,7 @@ export default function CreateClassModal({ ownerId }: { ownerId?: string }) {
                                 }`}
                         >
                             <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-xl font-bold text-slate-900">Create New Class</h2>
+                                <h2 className="text-xl font-bold text-slate-900">{t.modals.create_class}</h2>
                                 <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-full transition">
                                     <X size={20} />
                                 </button>
@@ -90,24 +91,24 @@ export default function CreateClassModal({ ownerId }: { ownerId?: string }) {
 
                             <form action={handleSubmit} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Class Name</label>
-                                    <input name="name" type="text" placeholder="e.g. 2026 A/L Physics" required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none transition" />
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">{t.forms.class_name}</label>
+                                    <input name="name" type="text" placeholder={t.forms.placeholder_name} required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none transition" />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1">Subject</label>
-                                        <input name="subject" type="text" placeholder="e.g. Physics" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none transition" />
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">{t.forms.subject}</label>
+                                        <input name="subject" type="text" placeholder={t.forms.placeholder_subject} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none transition" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1">Fee (LKR)</label>
-                                        <input name="fee" type="number" placeholder="2500" required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none transition" />
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">{t.forms.fee}</label>
+                                        <input name="fee" type="number" placeholder={t.forms.placeholder_fee} required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none transition" />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1">Day</label>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">{t.forms.day}</label>
                                         <select name="day" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none transition">
                                             <option>Monday</option>
                                             <option>Tuesday</option>
@@ -119,13 +120,13 @@ export default function CreateClassModal({ ownerId }: { ownerId?: string }) {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1">Time</label>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">{t.forms.time}</label>
                                         <input name="time" type="time" required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none transition" />
                                     </div>
                                 </div>
 
                                 <button disabled={isLoading} className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition mt-4 flex justify-center items-center gap-2">
-                                    {isLoading ? <Loader2 className="animate-spin" size={20} /> : <><Plus size={20} /> Create Class</>}
+                                    {isLoading ? <Loader2 className="animate-spin" size={20} /> : <><Plus size={20} /> {t.modals.create}</>}
                                 </button>
                             </form>
                         </motion.div>

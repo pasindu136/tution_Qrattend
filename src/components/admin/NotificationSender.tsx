@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { sendNotification, deleteNotification, getSentNotifications } from '@/app/admin/actions';
-import { Bell, Send, Users, CheckSquare, Square, X, History, Trash2, Clock, CheckCircle2 } from 'lucide-react';
+import { sendNotification, deleteNotification, getSentNotifications, sendEmail } from '@/app/admin/actions';
+import { Bell, Send, Users, CheckSquare, Square, X, History, Trash2, Clock, CheckCircle2, Mail } from 'lucide-react';
 
 export default function NotificationSender({ allUsers }: { allUsers: any[] }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -12,15 +12,17 @@ export default function NotificationSender({ allUsers }: { allUsers: any[] }) {
 
     // Send State
     const [message, setMessage] = useState('');
+    const [emailSubject, setEmailSubject] = useState('');
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [selectAll, setSelectAll] = useState(false);
     const [isSending, setIsSending] = useState(false);
+    const [channel, setChannel] = useState<'app' | 'email'>('app');
 
     // History State
     const [history, setHistory] = useState<any[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-    // Load History when tab changes
+    // Load History when tab changes (Only for App Notifications currently)
     useEffect(() => {
         if (isOpen && activeTab === 'history') {
             loadHistory();
@@ -51,14 +53,33 @@ export default function NotificationSender({ allUsers }: { allUsers: any[] }) {
 
     const handleSend = async () => {
         if (!message.trim() || selectedUsers.length === 0) return;
+        if (channel === 'email' && !emailSubject.trim()) {
+            alert("Please add a subject line for the email.");
+            return;
+        }
+
         setIsSending(true);
         try {
-            await sendNotification(selectedUsers, message);
+            if (channel === 'email') {
+                // Get emails of selected users
+                const emails = allUsers
+                    .filter(u => selectedUsers.includes(u.id))
+                    .map(u => u.email)
+                    .filter(e => e); // ensure valid
+
+                await sendEmail(emails, emailSubject, message);
+                alert(`Emails sent successfully to ${emails.length} users!`);
+            } else {
+                await sendNotification(selectedUsers, message);
+                alert("App notifications sent successfully!");
+                setActiveTab('history'); // Switch to history to see it
+            }
+
             setMessage('');
+            setEmailSubject('');
             setSelectedUsers([]);
             setSelectAll(false);
-            alert("Notifications sent successfully!");
-            setActiveTab('history'); // Switch to history to see it
+
         } catch (e) {
             console.error(e);
             alert("Failed to send.");
@@ -103,7 +124,7 @@ export default function NotificationSender({ allUsers }: { allUsers: any[] }) {
                     <div className="flex justify-between items-center p-6 pb-2">
                         <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900">
                             <Send size={20} className="text-blue-600" />
-                            Notifications
+                            Notify Users
                         </h2>
                         <button onClick={() => setIsOpen(false)} className="p-2 bg-white rounded-xl hover:bg-red-50 hover:text-red-500 transition shadow-sm border border-slate-100">
                             <X size={20} />
@@ -121,7 +142,7 @@ export default function NotificationSender({ allUsers }: { allUsers: any[] }) {
                             onClick={() => setActiveTab('history')}
                             className={`pb-3 text-sm font-bold border-b-2 transition ${activeTab === 'history' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                         >
-                            Sent History
+                            History (App)
                         </button>
                     </div>
                 </div>
@@ -131,13 +152,43 @@ export default function NotificationSender({ allUsers }: { allUsers: any[] }) {
 
                     {activeTab === 'send' ? (
                         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+
+                            {/* Channel Selection */}
+                            <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
+                                <button
+                                    onClick={() => setChannel('app')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition ${channel === 'app' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    <Bell size={16} /> App Notification
+                                </button>
+                                <button
+                                    onClick={() => setChannel('email')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition ${channel === 'email' ? 'bg-white shadow-sm text-purple-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    <Mail size={16} /> Email Broadcast
+                                </button>
+                            </div>
+
+                            {channel === 'email' && (
+                                <div className="mb-4 animate-in fade-in slide-in-from-top-1">
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Subject Line</label>
+                                    <input
+                                        type="text"
+                                        value={emailSubject}
+                                        onChange={(e) => setEmailSubject(e.target.value)}
+                                        className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition text-slate-700 font-medium"
+                                        placeholder="e.g., Important Account Update"
+                                    />
+                                </div>
+                            )}
+
                             <div className="mb-6">
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Message</label>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">{channel === 'email' ? 'Email Body' : 'Message'}</label>
                                 <textarea
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
-                                    className="w-full h-32 p-4 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition resize-none text-slate-700 font-medium"
-                                    placeholder="Type your announcement here..."
+                                    className={`w-full h-32 p-4 border border-slate-200 rounded-2xl outline-none focus:ring-4 transition resize-none text-slate-700 font-medium ${channel === 'email' ? 'focus:border-purple-500 focus:ring-purple-500/10' : 'focus:border-blue-500 focus:ring-blue-500/10'}`}
+                                    placeholder={channel === 'email' ? "Write your email content here..." : "Type your in-app announcement here..."}
                                 />
                             </div>
 
@@ -146,7 +197,7 @@ export default function NotificationSender({ allUsers }: { allUsers: any[] }) {
                                     <label className="text-sm font-bold text-slate-700">Recipients ({selectedUsers.length})</label>
                                     <button
                                         onClick={handleSelectAll}
-                                        className="text-xs font-bold flex items-center gap-1.5 text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-lg transition"
+                                        className={`text-xs font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${channel === 'email' ? 'bg-purple-50 text-purple-600 hover:text-purple-800' : 'bg-blue-50 text-blue-600 hover:text-blue-800'}`}
                                     >
                                         {selectAll ? <CheckSquare size={14} /> : <Square size={14} />}
                                         Select All
@@ -159,11 +210,13 @@ export default function NotificationSender({ allUsers }: { allUsers: any[] }) {
                                             key={user.id}
                                             onClick={() => toggleUser(user.id)}
                                             className={`p-3 rounded-xl border cursor-pointer transition flex items-center gap-3 ${selectedUsers.includes(user.id)
-                                                ? 'bg-blue-50 border-blue-200 shadow-sm'
-                                                : 'bg-white border-slate-100 hover:border-blue-100 hover:bg-slate-50'
+                                                ? (channel === 'email' ? 'bg-purple-50 border-purple-200 shadow-sm' : 'bg-blue-50 border-blue-200 shadow-sm')
+                                                : 'bg-white border-slate-100 hover:border-slate-300 hover:bg-slate-50'
                                                 }`}
                                         >
-                                            <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition ${selectedUsers.includes(user.id) ? 'bg-blue-500 border-blue-500 text-white' : 'border-slate-300 bg-white'
+                                            <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition ${selectedUsers.includes(user.id)
+                                                    ? (channel === 'email' ? 'bg-purple-500 border-purple-500 text-white' : 'bg-blue-500 border-blue-500 text-white')
+                                                    : 'border-slate-300 bg-white'
                                                 }`}>
                                                 {selectedUsers.includes(user.id) && <Users size={12} />}
                                             </div>
@@ -233,11 +286,11 @@ export default function NotificationSender({ allUsers }: { allUsers: any[] }) {
                         </button>
                         <button
                             onClick={handleSend}
-                            disabled={isSending || !message || selectedUsers.length === 0}
-                            className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition shadow-lg shadow-slate-900/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            disabled={isSending || !message || selectedUsers.length === 0 || (channel === 'email' && !emailSubject)}
+                            className={`px-6 py-3 text-white font-bold rounded-xl transition shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${channel === 'email' ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20'}`}
                         >
                             <Send size={18} />
-                            {isSending ? 'Sending...' : 'Send Now'}
+                            {isSending ? 'Sending...' : (channel === 'email' ? 'Send Email' : 'Send Notification')}
                         </button>
                     </div>
                 )}

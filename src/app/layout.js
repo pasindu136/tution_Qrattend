@@ -1,8 +1,9 @@
-import { Inter } from "next/font/google";
+import { Inter, Noto_Sans_Sinhala } from "next/font/google";
 import "./globals.css";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt"; // Import
 
 const inter = Inter({ subsets: ["latin"] });
+const notoSansSinhala = Noto_Sans_Sinhala({ subsets: ["sinhala"] });
 
 export const metadata = {
   title: "TuitionMate - Manage Your Classes",
@@ -22,7 +23,7 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.className} ${notoSansSinhala.className}`}>
         {children}
         <PWAInstallPrompt />
       </body>

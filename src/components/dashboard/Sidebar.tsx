@@ -1,10 +1,12 @@
+'use client';
 
 import Link from "next/link";
 import { LayoutDashboard, Users, Banknote, Calendar } from "lucide-react";
 import SidebarProfile from "./SidebarProfile";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Sidebar({ user }: { user: any }) {
-
+  const { t } = useLanguage();
   const name = user?.full_name || "Tutor"
   const initials = name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
 
@@ -25,25 +27,25 @@ export default function Sidebar({ user }: { user: any }) {
         {/* Dashboard Link */}
         <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 rounded-xl text-slate-300 hover:text-white font-medium transition-all group focus:bg-blue-600 focus:text-white active:bg-blue-600 active:text-white">
           <LayoutDashboard size={20} className="group-hover:text-blue-400 group-focus:text-white" />
-          Dashboard
+          {t.nav.home}
         </Link>
 
         {/* Students Link */}
         <Link href="/dashboard/students" className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all font-medium group">
           <Users size={20} className="group-hover:text-blue-400" />
-          My Students
+          {t.nav.students}
         </Link>
 
         {/* Fees Link */}
         <Link href="/dashboard/fees" className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all font-medium group">
           <Banknote size={20} className="group-hover:text-blue-400" />
-          Payments
+          {t.nav.payments}
         </Link>
 
         {/* Attendance Link */}
         <Link href="/dashboard/attendance" className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all font-medium group">
           <Calendar size={20} className="group-hover:text-blue-400" />
-          Attendance
+          {t.nav.attendance}
         </Link>
 
       </nav>
