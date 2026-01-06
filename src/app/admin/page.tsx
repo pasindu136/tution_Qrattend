@@ -1,10 +1,11 @@
 import { createClient } from "@/utils/supabase/server";
-import { approveUser, deleteUser } from "./actions";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import SubscriptionManager from "@/components/admin/SubscriptionManager";
 import NotificationSender from "@/components/admin/NotificationSender"; // Import
+import AdminUserActions from "@/components/admin/AdminUserActions"; // New Import
+import SystemStatusButton from "@/components/admin/SystemStatusButton"; // New Import
 import { LogOut, Search, Filter, Users, UserCheck, Clock, Shield, ChevronRight, MoreVertical, LayoutGrid, GraduationCap } from "lucide-react";
 
 export default async function AdminDashboard() {
@@ -48,11 +49,15 @@ export default async function AdminDashboard() {
                         <p className="text-xs text-slate-500 font-medium">System Overview</p>
                     </div>
                 </div>
-                <form action={signOut}>
-                    <button className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
-                        <LogOut size={20} />
-                    </button>
-                </form>
+
+                <div className="flex items-center gap-2">
+                    <SystemStatusButton />
+                    <form action={signOut}>
+                        <button className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                            <LogOut size={20} />
+                        </button>
+                    </form>
+                </div>
             </div>
 
             <div className="max-w-7xl mx-auto p-4 md:p-8">
@@ -152,7 +157,7 @@ export default async function AdminDashboard() {
                                             </div>
                                         </td>
                                         <td className="p-4">
-                                            <span className={`px - 2.5 py - 1 rounded - full text - [10px] font - bold uppercase tracking - wider ${profile.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${profile.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
                                                 } `}>
                                                 {profile.role}
                                             </span>
@@ -182,32 +187,7 @@ export default async function AdminDashboard() {
                                             />
                                         </td>
                                         <td className="p-4 text-right">
-                                            <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {profile.role !== 'admin' && (
-                                                    <>
-                                                        <Link
-                                                            href={`/admin/tutors/${profile.id}`}
-                                                            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition shadow-sm"
-                                                        >
-                                                            Manage
-                                                        </Link>
-
-                                                        {profile.is_approved ? (
-                                                            <form action={deleteUser.bind(null, profile.id)}>
-                                                                <button className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold transition border border-red-200">
-                                                                    Suspend
-                                                                </button>
-                                                            </form>
-                                                        ) : (
-                                                            <form action={approveUser.bind(null, profile.id)}>
-                                                                <button className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-bold transition border border-green-200">
-                                                                    Approve
-                                                                </button>
-                                                            </form>
-                                                        )}
-                                                    </>
-                                                )}
-                                            </div>
+                                            <AdminUserActions profile={profile} />
                                         </td>
                                     </tr>
                                 ))}
@@ -229,42 +209,13 @@ export default async function AdminDashboard() {
                                             <p className="text-xs text-slate-500 font-sans">{profile.email}</p>
                                         </div>
                                     </div>
-                                    <span className={`px - 2 py - 1 rounded - lg text - [10px] font - bold uppercase tracking - wider ${profile.is_approved ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                                    <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${profile.is_approved ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
                                         } `}>
                                         {profile.is_approved ? 'Active' : 'Pending'}
                                     </span>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3 mt-4">
-                                    {!profile.is_approved && (
-                                        <form action={approveUser.bind(null, profile.id)} className="w-full">
-                                            <button className="w-full py-2.5 bg-green-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-green-500/20 active:scale-95 transition">
-                                                Approve
-                                            </button>
-                                        </form>
-                                    )}
-
-                                    {profile.role !== 'admin' ? (
-                                        <Link
-                                            href={`/admin/tutors/${profile.id}`}
-                                            className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-lg shadow-slate-900/20 flex items-center justify-center gap-2 active:scale-95 transition text-center"
-                                        >
-                                            Manage Dashboard
-                                        </Link>
-                                    ) : (
-                                        <div className="col-span-2 py-2.5 bg-slate-100 text-slate-400 rounded-xl text-sm font-bold text-center">
-                                            Admin Account
-                                        </div>
-                                    )}
-
-                                    {(profile.role !== 'admin' && profile.is_approved) && (
-                                        <form action={deleteUser.bind(null, profile.id)} className="w-full">
-                                            <button className="w-full py-2.5 bg-red-50 text-red-600 rounded-xl text-sm font-bold border border-red-100 active:scale-95 transition">
-                                                Suspend
-                                            </button>
-                                        </form>
-                                    )}
-                                </div>
+                                <AdminUserActions profile={profile} isMobile={true} />
                             </div>
                         ))}
                     </div>

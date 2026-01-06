@@ -2,6 +2,8 @@ import { Inter, Noto_Sans_Sinhala } from "next/font/google";
 import "./globals.css";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt"; // Import
 
+import { LanguageProvider } from "@/contexts/LanguageContext";
+
 const inter = Inter({ subsets: ["latin"] });
 const notoSansSinhala = Noto_Sans_Sinhala({ subsets: ["sinhala"] });
 
@@ -24,8 +26,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${inter.className} ${notoSansSinhala.className}`}>
-        {children}
-        <PWAInstallPrompt />
+        <LanguageProvider>
+          {children}
+          <PWAInstallPrompt />
+        </LanguageProvider>
       </body>
     </html>
   );

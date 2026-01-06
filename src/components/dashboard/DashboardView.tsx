@@ -1,9 +1,26 @@
 import { createClient } from "@/utils/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import DashboardClient from "./DashboardClient";
 
 export default async function DashboardView({ userId, isOwner = true }: { userId: string, isOwner?: boolean }) {
-    const supabase = createClient();
+    // Determine which client to use
+    // If we are looking at someone else's data (isOwner=false), we MUST use the Admin Client to bypass RLS.
+    // If we are the owner, standard client is fine, but Admin client is also safe here since it's a server component and we know the userId.
+    // To be safe and consistent, let's try Admin Client if key exists, otherwise fallback to user client (though user client will fail for admin view).
+
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    let supabase;
+
+    if (serviceRoleKey) {
+        supabase = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            serviceRoleKey,
+            { auth: { persistSession: false } }
+        );
+    } else {
+        supabase = createClient();
+    }
 
     // 1. Fetch Classes and Profile in Parallel
     const [classesResult, profileResult] = await Promise.all([

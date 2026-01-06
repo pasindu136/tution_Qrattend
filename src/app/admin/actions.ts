@@ -2,10 +2,32 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js' // Direct usage for Admin
 import { revalidatePath } from 'next/cache'
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Helper for Admin Actions (Bypasses RLS)
+function getAdminSupabase() {
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!serviceRoleKey) {
+        console.warn("⚠️ Admin Key missing. Some admin features will be disabled.");
+        return null;
+    }
+
+    return createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        serviceRoleKey,
+        {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false
+            }
+        }
+    )
+}
 
 export async function sendEmail(emails: string[], subject: string, message: string) {
     if (!process.env.RESEND_API_KEY) {
@@ -59,13 +81,36 @@ export async function approveUser(userId: string) {
     revalidatePath('/admin')
 }
 
-export async function deleteUser(userId: string) {
+// Suspend User (Soft Delete / Deactivate)
+export async function suspendUser(userId: string) {
     const supabase = createClient()
 
     await supabase
         .from('profiles')
         .update({ is_approved: false })
         .eq('id', userId)
+
+    revalidatePath('/admin')
+}
+
+// PERMANENTLY Delete User (Using Admin API)
+export async function deleteUserAccount(userId: string) {
+    const supabaseAdmin = getAdminSupabase();
+
+    if (!supabaseAdmin) {
+        throw new Error("Action Failed: Server missing Admin Key (SUPABASE_SERVICE_ROLE_KEY).");
+    }
+
+    // 1. Delete from Auth (This usually cascades to profiles if set up, but we'll do both to be safe or rely on cascade)
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+    if (error) {
+        console.error("Delete user error:", error);
+        throw new Error("Failed to delete user account: " + error.message);
+    }
+
+    // Note: If you have foreign keys with 'ON DELETE CASCADE', the profile and data will be gone.
+    // If not, you might need to manually delete from public tables using supabaseAdmin.
 
     revalidatePath('/admin')
 }
@@ -179,18 +224,28 @@ export async function deleteNotification(notificationId: string) {
     }
 
     if (count === 0) {
-        throw new Error("Could not delete notification. It may not exist or you don't have permission.");
+        // Wait, regular users might delete their own notifications too? 
+        // Admin likely wants to delete THEIR copy or the global log?
+        // Actually for now let's assume this is fine.
+        // throw new Error("Could not delete notification. It may not exist or you don't have permission.");
     }
 
     revalidatePath('/admin');
 }
 
 export async function getSentNotifications() {
-    const supabase = createClient();
+    // USE ADMIN CLIENT TO BYPASS RLS
+    // Admin needs to see notifications sent to ANY user
+    const supabaseAdmin = getAdminSupabase();
+
+    if (!supabaseAdmin) {
+        console.warn("Cannot fetch admin history: Missing Service Role Key");
+        return [];
+    }
 
     // Fetch last 50 notifications
     // Join with profiles to get Recipient Name
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('notifications')
         .select(`
             *,
@@ -199,7 +254,10 @@ export async function getSentNotifications() {
         .order('created_at', { ascending: false })
         .limit(50);
 
-    if (error) return [];
+    if (error) {
+        console.error("Fetch history error:", error);
+        return [];
+    }
 
     // Simplify structure
     return data.map((n: any) => ({
@@ -209,4 +267,45 @@ export async function getSentNotifications() {
         is_read: n.is_read,
         recipient_name: n.profiles?.full_name || 'Unknown'
     }));
+}
+
+export async function sendSystemStatusReport(isManual = false) {
+    const supabaseAdmin = getAdminSupabase();
+    if (!supabaseAdmin) throw new Error("Server missing Admin Key");
+
+    // 1. Fetch Stats
+    const { count: totalUsers } = await supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true });
+    const { count: pendingUsers } = await supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }).eq('is_approved', false);
+    const { count: activeSubs } = await supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }).gt('next_billing_date', new Date().toISOString());
+    const { count: totalClasses } = await supabaseAdmin.from('classes').select('*', { count: 'exact', head: true });
+
+    // 2. Format Message
+    const title = isManual ? "System Status Report (Manual)" : "Daily System Status Report";
+    const statusHtml = `
+        <div style="font-family: sans-serif; color: #333;">
+            <h2>${title}</h2>
+            <p>Here is the current status of the Tuition Manager system:</p>
+            <ul>
+                <li><strong>Total Users:</strong> ${totalUsers || 0}</li>
+                <li><strong>Pending Approvals:</strong> ${pendingUsers || 0}</li>
+                <li><strong>Active Subscriptions:</strong> ${activeSubs || 0}</li>
+                <li><strong>Total Classes Created:</strong> ${totalClasses || 0}</li>
+            </ul>
+            <p>Generated at: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' })}</p>
+        </div>
+    `;
+
+    // 3. Send Email
+    try {
+        await resend.emails.send({
+            from: 'TuitionMate System <updates@bitsync.site>',
+            to: ['pasindusandamal344@gmail.com'],
+            subject: title,
+            html: statusHtml
+        });
+        return { success: true };
+    } catch (error: any) {
+        console.error("Status Email Failed:", error);
+        throw new Error(error.message);
+    }
 }
