@@ -5,8 +5,11 @@ import { signOut } from "@/app/login/actions";
 import SubscriptionManager from "@/components/admin/SubscriptionManager";
 import NotificationSender from "@/components/admin/NotificationSender"; // Import
 import AdminUserActions from "@/components/admin/AdminUserActions"; // New Import
+import RestoreManager from "@/components/admin/RestoreManager"; // Import
 import SystemStatusButton from "@/components/admin/SystemStatusButton"; // New Import
 import { LogOut, Search, Filter, Users, UserCheck, Clock, Shield, ChevronRight, MoreVertical, LayoutGrid, GraduationCap } from "lucide-react";
+
+
 
 export default async function AdminDashboard() {
     const supabase = createClient();
@@ -128,11 +131,12 @@ export default async function AdminDashboard() {
                 </div>
 
                 {/* Content Area */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
 
                     {/* Desktop Table View */}
                     <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left text-sm text-slate-600">
+
                             <thead className="bg-slate-50 border-b border-slate-100">
                                 <tr>
                                     <th className="p-4 px-6 font-bold text-slate-900">User Details</th>
@@ -221,6 +225,8 @@ export default async function AdminDashboard() {
                     </div>
 
                 </div>
+
+                <RestoreManager />
             </div>
         </div>
     );

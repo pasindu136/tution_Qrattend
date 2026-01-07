@@ -295,17 +295,110 @@ export async function sendSystemStatusReport(isManual = false) {
         </div>
     `;
 
-    // 3. Send Email
+    // 3. Fetch Full Database Dump for Backup
+    const backupData = await fetchFullDatabaseDump(supabaseAdmin);
+    const backupBuffer = Buffer.from(JSON.stringify(backupData, null, 2));
+
+    // 4. Send Email with Attachment
     try {
         await resend.emails.send({
             from: 'TuitionMate System <updates@bitsync.site>',
             to: ['pasindusandamal344@gmail.com'],
             subject: title,
-            html: statusHtml
+            html: statusHtml,
+            attachments: [
+                {
+                    filename: `tuition-manager-backup-${new Date().toISOString().split('T')[0]}.json`,
+                    content: backupBuffer,
+                },
+            ],
         });
         return { success: true };
     } catch (error: any) {
         console.error("Status Email Failed:", error);
+        throw new Error(error.message);
+    }
+}
+
+// Internal Helper: Fetch all data
+async function fetchFullDatabaseDump(supabaseAdmin: any) {
+    const tables = ['profiles', 'classes', 'students', 'attendance', 'payments', 'expenses', 'notifications'];
+    const dump: any = { timestamp: new Date().toISOString(), data: {} };
+
+    for (const table of tables) {
+        const { data, error } = await supabaseAdmin.from(table).select('*');
+        if (error) {
+            console.error(`Backup Error [${table}]:`, error);
+            dump.data[table] = []; // Fallback to empty if fails, but log it
+        } else {
+            dump.data[table] = data;
+        }
+    }
+    return dump;
+}
+
+// Restore Function
+export async function restoreDatabase(jsonContent: string) {
+    const supabaseAdmin = getAdminSupabase();
+    if (!supabaseAdmin) throw new Error("Server missing Admin Key");
+
+    const backup = JSON.parse(jsonContent);
+    if (!backup.data || !backup.data.profiles) throw new Error("Invalid Backup File Format");
+
+    // Order is critical for Deletion (Projecting foreign keys)
+    // Delete Child tables first
+    const deleteOrder = ['notifications', 'expenses', 'payments', 'attendance', 'students', 'classes'];
+
+    // Order is critical for Insertion
+    // Insert Parent tables first
+    const insertOrder = ['profiles', 'classes', 'students', 'attendance', 'payments', 'expenses', 'notifications'];
+
+    try {
+        // 1. Clean existing data (Except Admin Profile)
+        // We cannot delete profiles easily because of Auth linkage and self-deletion risk.
+        // Strategy: Delete everything else. For profiles, we only UPSERT (update/insert) from backup.
+        // We will NOT delete user profiles to avoid locking out the admin or breaking auth.
+
+        for (const table of deleteOrder) {
+            const { error } = await supabaseAdmin.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all (neq dummy uuid)
+            // Note: using neq id 0 is a hack to 'delete all' if no better way. Or .gt('id', 0) if number. UUIDs are strings.
+            // Best way to delete all in supabase: .neq('id', '0') usually works since UUIDs don't equal '0'.
+            // Actually, for UUID PKs, .neq('id', '00000000-0000-0000-0000-000000000000') works well.
+            if (error) throw new Error(`Failed to clear table ${table}: ${error.message}`);
+        }
+
+        // 2. Restore Data
+        for (const table of insertOrder) {
+            const rows = backup.data[table];
+            if (!rows || rows.length === 0) continue;
+
+            const { error } = await supabaseAdmin.from(table).upsert(rows);
+            if (error) throw new Error(`Failed to restore table ${table}: ${error.message}`);
+        }
+
+        return { success: true, message: `Database restored successfully from ${backup.timestamp}` };
+
+    } catch (error: any) {
+        console.error("Restore Failed:", error);
+        throw new Error("Restore Failed: " + error.message);
+    }
+}
+
+// DANGER: Clear Database (For Testing)
+export async function clearDatabase() {
+    const supabaseAdmin = getAdminSupabase();
+    if (!supabaseAdmin) throw new Error("Server missing Admin Key");
+
+    const tables = ['notifications', 'expenses', 'payments', 'attendance', 'students', 'classes'];
+
+    try {
+        for (const table of tables) {
+            const { error } = await supabaseAdmin.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            if (error) throw new Error(`Failed to clear table ${table}: ${error.message}`);
+        }
+        return { success: true, message: "Database cleared successfully (Profiles preserved)." };
+    } catch (error: any) {
+        console.error("Clear DB Failed:", error);
         throw new Error(error.message);
     }
 }
