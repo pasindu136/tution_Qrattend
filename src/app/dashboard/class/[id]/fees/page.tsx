@@ -3,7 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import FeesManager from "./FeesManager";
 
-export default async function FeesPage({ params: { id }, searchParams }: { params: { id: string }, searchParams: { month?: string } }) {
+export default async function FeesPage({ params: { id }, searchParams }: { params: { id: string }, searchParams: { month?: string, date?: string } }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
