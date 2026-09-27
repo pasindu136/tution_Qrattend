@@ -28,6 +28,7 @@ export async function createClass(formData: FormData, ownerId?: string) {
     const day = formData.get('day') as string
     const time = formData.get('time') as string
     const fee = formData.get('fee') as string
+    const feeType = (formData.get('fee_type') as string) || 'monthly'
 
     const { error } = await supabase
         .from('classes')
@@ -37,7 +38,8 @@ export async function createClass(formData: FormData, ownerId?: string) {
             subject,
             day,
             time,
-            fee_amount: parseFloat(fee)
+            fee_amount: parseFloat(fee),
+            fee_type: feeType
         })
 
 

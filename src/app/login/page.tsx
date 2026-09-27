@@ -6,10 +6,14 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Mail, Lock, LogIn } from 'lucide-react'
 import SubmitButton from '@/components/SubmitButton'
+import { useState } from 'react'
 
 export default function LoginPage({ searchParams }: { searchParams: { error?: string, message?: string } }) {
     const error = searchParams.error
     const message = searchParams.message
+
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-white relative overflow-hidden font-sans">
@@ -91,6 +95,8 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
                                 name="email"
                                 type="email"
                                 required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 placeholder="tutor@example.com"
                                 className="w-full pl-12 pr-4 py-4 rounded-xl bg-slate-50 border-2 border-slate-100 focus:border-blue-500 focus:ring-0 outline-none transition-all font-medium placeholder:text-slate-400"
                             />
@@ -108,6 +114,8 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
                                 name="password"
                                 type="password"
                                 required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••"
                                 className="w-full pl-12 pr-4 py-4 rounded-xl bg-slate-50 border-2 border-slate-100 focus:border-blue-500 focus:ring-0 outline-none transition-all font-medium placeholder:text-slate-400"
                             />
@@ -121,6 +129,23 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
                     />
 
                 </form>
+
+                {/* Developer Auto-fill Buttons */}
+                <div className="mt-6 flex flex-col md:flex-row gap-3">
+                    <button
+                        onClick={() => { setEmail('demo@tutorspace.com'); setPassword('admin123'); }}
+                        className="flex-1 py-2 px-4 bg-purple-50 text-purple-700 rounded-xl text-sm font-bold border border-purple-200 hover:bg-purple-100 transition"
+                    >
+                        Fill Admin Demo
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { setEmail('myuser@gmail.com'); setPassword('user123'); }}
+                        className="flex-1 py-2 px-4 bg-blue-50 text-blue-700 rounded-xl text-sm font-bold border border-blue-200 hover:bg-blue-100 transition"
+                    >
+                        Fill Test User
+                    </button>
+                </div>
 
                 {/* Footer */}
                 <p className="mt-8 text-center text-sm text-slate-500 font-medium">

@@ -4,11 +4,12 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Users, Calendar, Banknote, Search, CheckCircle, Save, Loader2, History } from 'lucide-react'
+import { ArrowLeft, Users, Calendar, Banknote, Search, CheckCircle, Save, Loader2, History, QrCode } from 'lucide-react'
 import { saveAttendance } from "./actions"
 import { motion, AnimatePresence } from "framer-motion"
 import CustomDatePicker from "@/components/ui/CustomDatePicker"
 import ClassNav from "@/components/dashboard/ClassNav"
+import QrScanner from "@/components/dashboard/QrScanner"
 
 export default function AttendanceManager({
     classId,
@@ -30,6 +31,8 @@ export default function AttendanceManager({
     const [searchQuery, setSearchQuery] = useState("")
     const [isSaving, setIsSaving] = useState(false)
     const [hasChanges, setHasChanges] = useState(false)
+    const [isScannerOpen, setIsScannerOpen] = useState(false)
+    const [scanMessage, setScanMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null)
 
     // Admin View Check
     const isAdminView = ownerId && currentUserId && ownerId !== currentUserId;
@@ -71,6 +74,23 @@ export default function AttendanceManager({
             [studentId]: newStatus
         }))
         setHasChanges(true)
+    }
+
+    function handleScan(studentId: string) {
+        const student = students.find(s => s.id === studentId);
+        if (student) {
+            setLocalAttendance(prev => ({
+                ...prev,
+                [studentId]: 'present'
+            }));
+            setHasChanges(true);
+            setScanMessage({ text: `${student.full_name} marked present!`, type: 'success' });
+        } else {
+            setScanMessage({ text: 'Invalid QR Code or student not in this class.', type: 'error' });
+        }
+        
+        // Clear message after 3 seconds
+        setTimeout(() => setScanMessage(null), 3000);
     }
 
     async function handleSave() {
@@ -128,13 +148,35 @@ export default function AttendanceManager({
 
             {/* Navigation Tabs */}
             <ClassNav classId={classId} activeTab="attendance" />
+            
+            {/* Scanner Message Toast */}
+            <AnimatePresence>
+                {scanMessage && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: -20 }} 
+                        animate={{ opacity: 1, y: 0 }} 
+                        exit={{ opacity: 0, y: -20 }}
+                        className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 ${
+                            scanMessage.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                        }`}
+                    >
+                        {scanMessage.type === 'success' && <CheckCircle size={20} />}
+                        {scanMessage.text}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* QR Scanner Modal */}
+            {isScannerOpen && (
+                <QrScanner onScan={handleScan} onClose={() => setIsScannerOpen(false)} />
+            )}
 
             {/* Controls & Date Picker */}
             <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 mb-6 flex flex-col items-center gap-6 sticky top-4 z-20 lg:flex-row lg:justify-between">
 
-                {/* Date Picker - Full Width on Mobile */}
-                <div className="w-full lg:w-auto">
-                    <div className="relative z-50">
+                {/* Date Picker & Scan Button - Full Width on Mobile */}
+                <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-4 items-center">
+                    <div className="relative z-50 w-full sm:w-auto">
                         <label className="absolute -top-2.5 left-2 px-1 text-[10px] font-bold text-slate-400 bg-white z-10">Select Date</label>
                         <div className="w-full">
                             <CustomDatePicker
@@ -147,6 +189,13 @@ export default function AttendanceManager({
                             />
                         </div>
                     </div>
+                    
+                    <button 
+                        onClick={() => setIsScannerOpen(true)}
+                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition active:scale-95"
+                    >
+                        <QrCode size={20} /> Scan QR
+                    </button>
                 </div>
 
                 {/* Separator - Visible on Mobile */}

@@ -6,8 +6,6 @@ import { createClient as createAdminClient } from '@supabase/supabase-js' // Dir
 import { revalidatePath } from 'next/cache'
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 // Helper for Admin Actions (Bypasses RLS)
 function getAdminSupabase() {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -30,10 +28,12 @@ function getAdminSupabase() {
 }
 
 export async function sendEmail(emails: string[], subject: string, message: string) {
-    if (!process.env.RESEND_API_KEY) {
-        console.error("Missing RESEND_API_KEY");
-        throw new Error("Server config error: RESEND_API_KEY Missing. Please restart the terminal.");
+    if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === "re_dummy_key_for_development") {
+        console.warn("Skipping email send: RESEND_API_KEY is not configured.");
+        return { success: true, warning: "Email skipped: No API key" };
     }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
     if (!emails.length || !message.trim()) return;
 
@@ -70,13 +70,18 @@ export async function approveUser(userId: string) {
     const nextBilling = new Date();
     nextBilling.setDate(nextBilling.getDate() + 30);
 
-    await supabase
+    const { error } = await supabase
         .from('profiles')
         .update({
             is_approved: true,
             next_billing_date: nextBilling.toISOString()
         })
         .eq('id', userId)
+        
+    if (error) {
+        console.error("Approve error:", error);
+        throw new Error(error.message);
+    }
 
     revalidatePath('/admin')
 }
@@ -298,6 +303,14 @@ export async function sendSystemStatusReport(isManual = false) {
     // 3. Fetch Full Database Dump for Backup
     const backupData = await fetchFullDatabaseDump(supabaseAdmin);
     const backupBuffer = Buffer.from(JSON.stringify(backupData, null, 2));
+
+    // If no Resend key, just return the data or log it
+    if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === "re_dummy_key_for_development") {
+        console.warn("Skipping system status email: RESEND_API_KEY is not configured.");
+        return { success: true, warning: "Email skipped: No API key" };
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
     // 4. Send Email with Attachment
     try {

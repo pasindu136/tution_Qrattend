@@ -8,6 +8,8 @@ import StudentModal from "./StudentModal"
 import { deleteStudent } from "./actions"
 import ClassNav from "@/components/dashboard/ClassNav"
 import ConfirmationModal from "@/components/ui/ConfirmationModal"
+import { downloadSingleQr, downloadAllQrsPdf } from "./qrHelpers"
+import { QrCode, Download } from 'lucide-react'
 
 import { createClient } from "@/utils/supabase/client"
 
@@ -91,12 +93,21 @@ export default function StudentList({ classId, initialStudents, ownerId, current
                         className="w-full pl-12 pr-4 py-3 rounded-xl bg-white border border-slate-200 focus:border-blue-500 outline-none transition shadow-sm"
                     />
                 </div>
-                <button
-                    onClick={() => { setEditingStudent(null); setIsModalOpen(true); }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition active:scale-95 whitespace-nowrap"
-                >
-                    <Plus size={20} /> <span className="hidden sm:inline">Add Student</span><span className="sm:hidden">Add</span>
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => downloadAllQrsPdf(filteredStudents, "Class")}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition active:scale-95 whitespace-nowrap"
+                        title="Download All QR Codes as PDF"
+                    >
+                        <Download size={20} /> <span className="hidden sm:inline">Download QRs</span>
+                    </button>
+                    <button
+                        onClick={() => { setEditingStudent(null); setIsModalOpen(true); }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition active:scale-95 whitespace-nowrap"
+                    >
+                        <Plus size={20} /> <span className="hidden sm:inline">Add Student</span><span className="sm:hidden">Add</span>
+                    </button>
+                </div>
             </div>
 
             {/* Desktop Table View (Hidden on Mobile) */}
@@ -129,10 +140,17 @@ export default function StudentList({ classId, initialStudents, ownerId, current
                                     ) : "-"}
                                 </td>
                                 <td className="p-4 text-slate-400 text-xs">
-                                    {new Date(student.joined_at).toLocaleDateString()}
+                                    {new Date(student.created_at).toLocaleDateString()}
                                 </td>
                                 <td className="p-4 text-right">
                                     <div className="flex items-center justify-end gap-2">
+                                        <button
+                                            onClick={() => downloadSingleQr(student.id, student.full_name)}
+                                            className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition"
+                                            title="Download QR"
+                                        >
+                                            <QrCode size={16} />
+                                        </button>
                                         <button
                                             onClick={() => { setEditingStudent(student); setIsModalOpen(true); }}
                                             className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
@@ -181,6 +199,12 @@ export default function StudentList({ classId, initialStudents, ownerId, current
                             </div>
                             <div className="flex gap-1">
                                 <button
+                                    onClick={() => downloadSingleQr(student.id, student.full_name)}
+                                    className="p-2 text-slate-400 hover:text-slate-900 bg-slate-50 rounded-lg transition"
+                                >
+                                    <QrCode size={16} />
+                                </button>
+                                <button
                                     onClick={() => { setEditingStudent(student); setIsModalOpen(true); }}
                                     className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 rounded-lg transition"
                                 >
@@ -202,7 +226,7 @@ export default function StudentList({ classId, initialStudents, ownerId, current
                             </div>
                             <div className="flex items-center gap-2 text-slate-500 bg-slate-50 p-2 rounded-lg">
                                 <Clock size={14} />
-                                <span className="font-medium text-slate-700">{new Date(student.joined_at).toLocaleDateString()}</span>
+                                <span className="font-medium text-slate-700">{new Date(student.created_at).toLocaleDateString()}</span>
                             </div>
                         </div>
                     </div>

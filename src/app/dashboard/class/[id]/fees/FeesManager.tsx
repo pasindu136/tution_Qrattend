@@ -11,21 +11,23 @@ import ClassNav from "@/components/dashboard/ClassNav"
 export default function FeesManager({
     classId,
     classFee,
+    feeType,
     students,
-    initialMonth,
+    initialPeriod,
     paymentsData,
     ownerId,
     currentUserId
 }: {
     classId: string,
     classFee: number,
+    feeType: string,
     students: any[],
-    initialMonth: string,
+    initialPeriod: string,
     paymentsData: any[],
     ownerId?: string,
     currentUserId?: string
 }) {
-    const [month, setMonth] = useState(initialMonth)
+    const [period, setPeriod] = useState(initialPeriod)
     const [searchQuery, setSearchQuery] = useState("")
     const [processingId, setProcessingId] = useState<string | null>(null)
 
@@ -60,7 +62,7 @@ export default function FeesManager({
 
         try {
             // Use class fee by default
-            await recordPayment(classId, studentId, month, classFee)
+            await recordPayment(classId, studentId, period, classFee)
         } finally {
             setProcessingId(null)
         }
@@ -106,7 +108,7 @@ export default function FeesManager({
                 </Link>
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Fee Management</h1>
-                    <p className="text-slate-500">Track monthly fee payments.</p>
+                    <p className="text-slate-500">Track {feeType === 'daily' ? 'daily' : 'monthly'} fee payments.</p>
                 </div>
             </div>
 
@@ -117,12 +119,15 @@ export default function FeesManager({
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-20">
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <div className="relative">
-                        <label className="absolute -top-2 left-3 px-1 bg-white text-[10px] font-bold text-slate-400">Select Month</label>
+                        <label className="absolute -top-2 left-3 px-1 bg-white text-[10px] font-bold text-slate-400">
+                            {feeType === 'daily' ? 'Select Date' : 'Select Month'}
+                        </label>
                         <input
-                            type="month"
-                            value={month}
+                            type={feeType === 'daily' ? "date" : "month"}
+                            value={period}
                             onChange={(e) => {
-                                window.location.href = `fees?month=${e.target.value}`
+                                const param = feeType === 'daily' ? 'date' : 'month';
+                                window.location.href = `fees?${param}=${e.target.value}`
                             }}
                             className="pl-4 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
                         />

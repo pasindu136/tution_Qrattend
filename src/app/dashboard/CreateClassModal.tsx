@@ -102,7 +102,13 @@ export default function CreateClassModal({ ownerId }: { ownerId?: string }) {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 mb-1">{t.forms.fee}</label>
-                                        <input name="fee" type="number" placeholder={t.forms.placeholder_fee} required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none transition" />
+                                        <div className="flex gap-2">
+                                            <input name="fee" type="number" placeholder={t.forms.placeholder_fee} required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none transition" />
+                                            <select name="fee_type" className="px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none transition text-sm font-medium text-slate-600">
+                                                <option value="monthly">Monthly</option>
+                                                <option value="daily">Daily</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
 

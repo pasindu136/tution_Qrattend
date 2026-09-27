@@ -14,7 +14,7 @@ export default async function StudentsPage({ params: { id } }: { params: { id: s
         .from("students")
         .select("*")
         .eq("class_id", id)
-        .order("joined_at", { ascending: false });
+        .order("created_at", { ascending: false });
 
     // Fetch Class Owner (for Admin Check)
     const { data: classData } = await supabase
