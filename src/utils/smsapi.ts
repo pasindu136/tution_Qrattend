@@ -1,6 +1,6 @@
 export async function sendSMS(recipient: string, message: string) {
     const API_URL = "https://dashboard.smsapi.lk/api/v3/sms/send";
-    const API_TOKEN = "585|qUoYlvu9KBpRefBdBJYw7BLl4dPcTaVbVzctQEPY"; // Ideally move to .env
+    const API_TOKEN = "659|2EVUgrMTSupya7CFeLdQM8SfH0lnxfv7N0RKWCic"; // Ideally move to .env
 
     // Format phone number to international format if starting with 0
     let formattedPhone = recipient.replace(/\s+/g, "");
