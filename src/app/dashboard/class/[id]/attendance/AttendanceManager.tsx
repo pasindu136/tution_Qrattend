@@ -106,17 +106,7 @@ export default function AttendanceManager({
                 
                 // Auto-save as dummy record for SMS trigger
                 const smsEnabled = typeof window !== 'undefined' && localStorage.getItem('setting_sms_enabled') === 'true';
-                saveDraftScan(classId, date, studentId, smsEnabled).then((res) => {
-                    if (res?.smsResult) {
-                        if (res.smsResult.success) {
-                            alert(`✅ SMS Sent Successfully to ${student.full_name}'s parent!`);
-                        } else {
-                            alert(`❌ SMS Failed for ${student.full_name}:\n\n${res.smsResult.error}`);
-                        }
-                    } else if (smsEnabled && res?.success) {
-                         alert(`⚠️ SMS Enabled but no phone number found for ${student.full_name}.`);
-                    }
-                }).catch(err => console.error("Failed to save draft scan:", err));
+                saveDraftScan(classId, date, studentId, smsEnabled).catch(err => console.error("Failed to save draft scan:", err));
             }
         } else {
             setScanMessage({ text: 'Invalid QR Code or student not in this class.', type: 'error' });
