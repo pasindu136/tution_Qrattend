@@ -26,11 +26,18 @@ export async function sendSMS(recipient: string, message: string) {
 
         if (!response.ok) {
             const text = await response.text();
-            console.error("SMS API Error Response:", text);
+            console.error("SMS API HTTP Error:", text);
             return { success: false, error: text };
         }
 
         const data = await response.json();
+        
+        // SMSAPI.lk often returns HTTP 200 but includes { status: 'error', message: '...' } in the body
+        if (data.status === 'error' || data.error) {
+            console.error("SMS API Payload Error:", data);
+            return { success: false, error: data.message || JSON.stringify(data) };
+        }
+
         return { success: true, data };
     } catch (error: any) {
         console.error("SMS Sending Failed:", error);
