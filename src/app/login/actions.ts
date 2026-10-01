@@ -37,7 +37,22 @@ export async function login(formData: FormData) {
     console.log(`User ${user.email} logged in with role: ${role}`)
 
     if (role === 'admin') {
-        redirect('/admin')
+        const bcrypt = await import('bcryptjs');
+        const { cookies } = await import('next/headers');
+        const { sendSMS } = await import('@/utils/smsapi');
+        
+        // Generate and hash OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const hashedOtp = await bcrypt.hash(otp, 10);
+        
+        // Store in secure cookies
+        cookies().set('admin_otp_hash', hashedOtp, { secure: true, httpOnly: true });
+        cookies().set('admin_otp_verified', 'false', { secure: true, httpOnly: true });
+        
+        // Send SMS to admin number as requested
+        await sendSMS('0767664172', `TuitionMate: Your Admin Login OTP is ${otp}. Please do not share this code.`);
+        
+        redirect('/admin-otp-verify')
     }
 
     redirect('/dashboard')
@@ -80,6 +95,10 @@ export async function signup(formData: FormData) {
 export async function signOut() {
     const supabase = createClient()
     await supabase.auth.signOut()
+
+    const { cookies } = await import('next/headers')
+    cookies().delete('admin_otp_hash')
+    cookies().delete('admin_otp_verified')
 
     revalidatePath('/', 'layout')
     redirect('/login')

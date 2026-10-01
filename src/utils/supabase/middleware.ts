@@ -94,6 +94,12 @@ export async function updateSession(request: NextRequest) {
             console.log("Access denied to admin panel for user:", user.email)
             return NextResponse.redirect(new URL('/dashboard', request.url))
         }
+
+        // Check if admin OTP is verified
+        const isOtpVerified = request.cookies.get('admin_otp_verified')?.value === 'true'
+        if (!isOtpVerified) {
+            return NextResponse.redirect(new URL('/admin-otp-verify', request.url))
+        }
     }
 
     // Redirect logged-in users away from Login
@@ -105,6 +111,10 @@ export async function updateSession(request: NextRequest) {
             .single()
 
         if (profile?.role === 'admin') {
+            const isOtpVerified = request.cookies.get('admin_otp_verified')?.value === 'true'
+            if (!isOtpVerified) {
+                return NextResponse.redirect(new URL('/admin-otp-verify', request.url))
+            }
             return NextResponse.redirect(new URL('/admin', request.url))
         }
 
