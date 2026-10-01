@@ -90,9 +90,13 @@ export async function saveDraftScan(classId: string, date: string, studentId: st
                     
                 const className = classData?.name || "the class"
                 const message = `Dear Parent, your child ${student.full_name} has arrived at ${className} on ${date}.`
+                // Await SMS to get status for developer debugging
+                const smsResult = await sendSMS(phone, message).catch(err => {
+                    console.error("Background SMS Error:", err);
+                    return { success: false, error: err.message };
+                });
                 
-                // Fire and forget SMS to avoid blocking UI
-                sendSMS(phone, message).catch(err => console.error("Background SMS Error:", err))
+                return { success: true, smsResult };
             }
         }
     }
