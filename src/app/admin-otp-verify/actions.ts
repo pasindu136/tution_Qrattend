@@ -24,3 +24,26 @@ export async function verifyAdminOtp(inputOtp: string) {
         return { success: false, error: 'Invalid OTP code. Please try again.' }
     }
 }
+
+export async function resendAdminOtp() {
+    const bcrypt = require('bcryptjs')
+    const cookieStore = cookies()
+    const { sendSMS } = await import('@/utils/smsapi')
+    
+    // Generate and hash OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    const hashedOtp = await bcrypt.hash(otp, 10)
+    
+    // Store in secure cookies
+    cookieStore.set('admin_otp_hash', hashedOtp, { secure: true, httpOnly: true })
+    cookieStore.set('admin_otp_verified', 'false', { secure: true, httpOnly: true })
+    
+    // Send SMS to admin number
+    const result = await sendSMS('0767664172', `TuitionMate: Your Admin Login OTP is ${otp}. Please do not share this code.`)
+    
+    if (result.success) {
+        return { success: true }
+    } else {
+        return { success: false, error: result.error }
+    }
+}
