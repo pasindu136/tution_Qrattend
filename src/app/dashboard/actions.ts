@@ -51,3 +51,20 @@ export async function createClass(formData: FormData, ownerId?: string) {
     revalidatePath('/dashboard')
     return { success: true }
 }
+
+export async function updateProfileName(userId: string, newName: string) {
+    const supabase = createClient()
+    
+    const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: newName })
+        .eq('id', userId)
+        
+    if (error) {
+        return { error: error.message }
+    }
+    
+    // Also revalidate layout so layout gets new user details if necessary
+    revalidatePath('/', 'layout')
+    return { success: true }
+}

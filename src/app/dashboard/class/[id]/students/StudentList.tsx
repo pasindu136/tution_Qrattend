@@ -140,7 +140,7 @@ export default function StudentList({ classId, initialStudents, ownerId, current
                                     ) : "-"}
                                 </td>
                                 <td className="p-4 text-slate-400 text-xs">
-                                    {new Date(student.created_at).toLocaleDateString()}
+                                    {new Date(student.created_at).toLocaleDateString('en-GB')}
                                 </td>
                                 <td className="p-4 text-right">
                                     <div className="flex items-center justify-end gap-2">
@@ -226,7 +226,7 @@ export default function StudentList({ classId, initialStudents, ownerId, current
                             </div>
                             <div className="flex items-center gap-2 text-slate-500 bg-slate-50 p-2 rounded-lg">
                                 <Clock size={14} />
-                                <span className="font-medium text-slate-700">{new Date(student.created_at).toLocaleDateString()}</span>
+                                <span className="font-medium text-slate-700">{new Date(student.created_at).toLocaleDateString('en-GB')}</span>
                             </div>
                         </div>
                     </div>

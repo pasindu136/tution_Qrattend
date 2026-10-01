@@ -14,7 +14,13 @@ export default function QrScanner({ onScan, onClose }: QrScannerProps) {
     const [error, setError] = useState('');
     const [isStarting, setIsStarting] = useState(true);
 
+    const onScanRef = useRef(onScan);
     useEffect(() => {
+        onScanRef.current = onScan;
+    }, [onScan]);
+
+    useEffect(() => {
+        let isMounted = true;
         const html5QrCode = new Html5Qrcode("reader");
         scannerRef.current = html5QrCode;
 
@@ -30,13 +36,13 @@ export default function QrScanner({ onScan, onClose }: QrScannerProps) {
                 const audio = new Audio('/beep.mp3');
                 audio.play().catch(e => console.log('Audio play blocked:', e));
                 
-                onScan(decodedText);
+                onScanRef.current(decodedText);
                 
                 // Add a small delay to avoid rapid duplicate scans
                 if (scannerRef.current) {
                     scannerRef.current.pause();
                     setTimeout(() => {
-                        if (scannerRef.current?.getState() === 3 /* PAUSED */) {
+                        if (isMounted && scannerRef.current?.getState() === 3 /* PAUSED */) {
                             scannerRef.current.resume();
                         }
                     }, 1500);
@@ -46,34 +52,51 @@ export default function QrScanner({ onScan, onClose }: QrScannerProps) {
                 // Ignore regular scan errors (not finding QR)
             }
         ).then(() => {
-            setIsStarting(false);
+            if (!isMounted) {
+                // If the component unmounted before start finished, stop it immediately
+                html5QrCode.stop().catch(console.error).finally(() => html5QrCode.clear());
+            } else {
+                setIsStarting(false);
+            }
         }).catch((err) => {
-            setIsStarting(false);
-            console.error("Camera start error:", err);
-            setError("Could not access camera. Please ensure you have granted camera permissions to this site.");
+            if (isMounted) {
+                setIsStarting(false);
+                console.error("Camera start error:", err);
+                setError("Could not access camera. Please ensure you have granted camera permissions to this site.");
+            }
         });
 
         return () => {
+            isMounted = false;
             if (scannerRef.current) {
-                // Ignore errors during clear as component might be unmounting
-                scannerRef.current.stop().catch(e => console.error(e)).finally(() => {
-                    scannerRef.current?.clear();
-                });
+                try {
+                    // Only attempt to stop if it is currently scanning or paused
+                    const state = scannerRef.current.getState();
+                    if (state === 2 /* SCANNING */ || state === 3 /* PAUSED */) {
+                        scannerRef.current.stop().catch(e => console.error("Stop error:", e)).finally(() => {
+                            try { scannerRef.current?.clear(); } catch(e) {}
+                        });
+                    } else {
+                        try { scannerRef.current.clear(); } catch(e) {}
+                    }
+                } catch (e) {
+                    console.error("Cleanup error:", e);
+                }
             }
         };
-    }, [onScan]);
+    }, []);
 
     return (
         <div className="fixed inset-0 bg-black/80 z-[100] flex flex-col items-center justify-center p-4 backdrop-blur-sm">
-            <button 
-                onClick={onClose}
-                className="absolute top-6 right-6 text-white hover:text-white/80 p-3 bg-black/40 rounded-full backdrop-blur-md transition-all hover:scale-110 active:scale-95"
-            >
-                <X size={24} />
-            </button>
-            
-            <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl">
-                <div className="p-6 text-center border-b border-slate-100">
+            <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative">
+                <button 
+                    onClick={onClose}
+                    className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-2 rounded-full transition-all hover:scale-110 active:scale-95 z-10"
+                >
+                    <X size={20} />
+                </button>
+                
+                <div className="p-6 text-center border-b border-slate-100 relative">
                     <h3 className="text-xl font-bold text-slate-900">Scan Student QR</h3>
                     <p className="text-slate-500 text-sm mt-1">
                         Position the code inside the box

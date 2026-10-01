@@ -42,12 +42,6 @@ export default function Sidebar({ user }: { user: any }) {
           {t.nav.payments}
         </Link>
 
-        {/* Attendance Link */}
-        <Link href="/dashboard/attendance" className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all font-medium group">
-          <Calendar size={20} className="group-hover:text-blue-400" />
-          {t.nav.attendance}
-        </Link>
-
       </nav>
 
 

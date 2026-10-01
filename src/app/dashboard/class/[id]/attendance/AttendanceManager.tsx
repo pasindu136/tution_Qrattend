@@ -4,12 +4,14 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Users, Calendar, Banknote, Search, CheckCircle, Save, Loader2, History, QrCode } from 'lucide-react'
-import { saveAttendance } from "./actions"
+import { ArrowLeft, Users, Calendar, Banknote, Search, CheckCircle, Save, Loader2, History, QrCode, Lock, Unlock, Trash2 } from 'lucide-react'
+import { saveAttendance, saveDraftScan, deleteAttendance } from "./actions"
 import { motion, AnimatePresence } from "framer-motion"
 import CustomDatePicker from "@/components/ui/CustomDatePicker"
 import ClassNav from "@/components/dashboard/ClassNav"
 import QrScanner from "@/components/dashboard/QrScanner"
+import AttendanceHistoryModal from "./AttendanceHistoryModal"
+import ConfirmationModal from "@/components/ui/ConfirmationModal"
 
 export default function AttendanceManager({
     classId,
@@ -32,6 +34,10 @@ export default function AttendanceManager({
     const [isSaving, setIsSaving] = useState(false)
     const [hasChanges, setHasChanges] = useState(false)
     const [isScannerOpen, setIsScannerOpen] = useState(false)
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+    const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false)
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
     const [scanMessage, setScanMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null)
 
     // Admin View Check
@@ -40,9 +46,15 @@ export default function AttendanceManager({
     // Map StudentID -> Status
     const [localAttendance, setLocalAttendance] = useState<Record<string, string>>({})
 
+    const today = new Date().toISOString().split('T')[0];
+    const isPastDate = date < today;
+    const [isUnlocked, setIsUnlocked] = useState(false);
+    const isLocked = isPastDate && !isUnlocked;
+
     // Sync date state with prop
     useEffect(() => {
         setDate(initialDate)
+        setIsUnlocked(false)
     }, [initialDate])
 
     // Initialize/Reset local state when props change
@@ -66,6 +78,7 @@ export default function AttendanceManager({
     const percentage = students.length > 0 ? Math.round((presentCount / students.length) * 100) : 0
 
     function toggleAttendance(studentId: string) {
+        if (isLocked) return;
         const currentStatus = localAttendance[studentId]
         const newStatus = currentStatus === 'present' ? 'absent' : 'present'
 
@@ -78,13 +91,23 @@ export default function AttendanceManager({
 
     function handleScan(studentId: string) {
         const student = students.find(s => s.id === studentId);
+        
         if (student) {
-            setLocalAttendance(prev => ({
-                ...prev,
-                [studentId]: 'present'
-            }));
-            setHasChanges(true);
-            setScanMessage({ text: `${student.full_name} marked present!`, type: 'success' });
+            // Check if already marked present
+            if (localAttendance[studentId] === 'present') {
+                setScanMessage({ text: `${student.full_name} is already marked present!`, type: 'error' }); // Use error type for visual warning
+            } else {
+                setLocalAttendance(prev => ({
+                    ...prev,
+                    [studentId]: 'present'
+                }));
+                setHasChanges(true);
+                setScanMessage({ text: `${student.full_name} marked present!`, type: 'success' });
+                
+                // Auto-save as dummy record for SMS trigger
+                const smsEnabled = typeof window !== 'undefined' && localStorage.getItem('setting_sms_enabled') === 'true';
+                saveDraftScan(classId, date, studentId, smsEnabled).catch(err => console.error("Failed to save draft scan:", err));
+            }
         } else {
             setScanMessage({ text: 'Invalid QR Code or student not in this class.', type: 'error' });
         }
@@ -121,6 +144,34 @@ export default function AttendanceManager({
         }
     }
 
+    function handleUnlock() {
+        setIsUnlockModalOpen(true);
+    }
+
+    async function handleDelete() {
+        if (isDeleting) return;
+
+        // Admin Confirmation
+        if (isAdminView) {
+            const confirmed = window.confirm("⚠️ ADMIN WARNING:\n\nYou are deleting attendance for ANOTHER user's class.\nAre you sure you want to proceed?");
+            if (!confirmed) return;
+        }
+
+        setIsDeleting(true);
+
+        try {
+            const result = await deleteAttendance(classId, date);
+            if (result?.success) {
+                setLocalAttendance({});
+                setHasChanges(false);
+            } else {
+                alert("Failed to delete attendance");
+            }
+        } finally {
+            setIsDeleting(false);
+        }
+    }
+
     return (
         <div className="min-h-screen pb-20">
             {/* Admin Banner */}
@@ -152,17 +203,19 @@ export default function AttendanceManager({
             {/* Scanner Message Toast */}
             <AnimatePresence>
                 {scanMessage && (
-                    <motion.div 
-                        initial={{ opacity: 0, y: -20 }} 
-                        animate={{ opacity: 1, y: 0 }} 
-                        exit={{ opacity: 0, y: -20 }}
-                        className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 ${
-                            scanMessage.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-                        }`}
-                    >
-                        {scanMessage.type === 'success' && <CheckCircle size={20} />}
-                        {scanMessage.text}
-                    </motion.div>
+                    <div className="fixed top-24 left-0 right-0 z-[150] flex justify-center px-4 pointer-events-none">
+                        <motion.div 
+                            initial={{ opacity: 0, y: -20 }} 
+                            animate={{ opacity: 1, y: 0 }} 
+                            exit={{ opacity: 0, y: -20 }}
+                            className={`px-5 py-3 rounded-2xl text-sm font-medium shadow-2xl flex items-center gap-3 max-w-full border pointer-events-auto ${
+                                scanMessage.type === 'success' ? 'bg-emerald-500/90 border-emerald-400 text-white backdrop-blur-md' : 'bg-rose-500/90 border-rose-400 text-white backdrop-blur-md'
+                            }`}
+                        >
+                            {scanMessage.type === 'success' && <CheckCircle size={20} className="shrink-0" />}
+                            <span className="text-center leading-snug">{scanMessage.text}</span>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
 
@@ -189,13 +242,54 @@ export default function AttendanceManager({
                             />
                         </div>
                     </div>
-                    
-                    <button 
-                        onClick={() => setIsScannerOpen(true)}
-                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition active:scale-95"
-                    >
-                        <QrCode size={20} /> Scan QR
-                    </button>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        {isPastDate && (
+                            <button 
+                                onClick={() => {
+                                    if (hasChanges && !confirm("You have unsaved changes. Are you sure you want to go back to today?")) return;
+                                    router.push(`?date=${today}`)
+                                }}
+                                className="shrink-0 px-4 sm:px-6 py-3 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-xl font-bold flex items-center justify-center gap-2 transition active:scale-95"
+                                title="Back to Today"
+                            >
+                                <Calendar size={20} /> <span className="hidden sm:inline">Today</span>
+                            </button>
+                        )}
+                        <button 
+                            onClick={() => setIsHistoryOpen(true)}
+                            className="shrink-0 px-4 sm:px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold flex items-center justify-center gap-2 transition active:scale-95"
+                            title="View History"
+                        >
+                            <History size={20} /> <span className="hidden sm:inline">History</span>
+                        </button>
+                        {isLocked ? (
+                            <button 
+                                onClick={handleUnlock}
+                                className="flex-1 whitespace-nowrap px-4 sm:px-6 py-3 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl font-bold flex items-center justify-center gap-2 transition active:scale-95"
+                            >
+                                <Lock size={20} /> Unlock
+                            </button>
+                        ) : (
+                            <>
+                                {attendanceData.length > 0 && (
+                                    <button 
+                                        onClick={() => setIsDeleteModalOpen(true)}
+                                        className="shrink-0 px-4 sm:px-6 py-3 bg-rose-100 hover:bg-rose-200 text-rose-600 rounded-xl font-bold flex items-center justify-center gap-2 transition active:scale-95"
+                                        title="Clear all saved attendance for this date"
+                                    >
+                                        {isDeleting ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />} 
+                                        <span className="hidden sm:inline">Clear</span>
+                                    </button>
+                                )}
+                                <button 
+                                    onClick={() => setIsScannerOpen(true)}
+                                    className="flex-1 whitespace-nowrap px-4 sm:px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition active:scale-95"
+                                >
+                                    <QrCode size={20} /> Scan QR
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 {/* Separator - Visible on Mobile */}
@@ -245,6 +339,34 @@ export default function AttendanceManager({
                 )}
             </AnimatePresence>
 
+            <AttendanceHistoryModal 
+                classId={classId} 
+                isOpen={isHistoryOpen} 
+                onClose={() => setIsHistoryOpen(false)} 
+            />
+
+            <ConfirmationModal
+                isOpen={isUnlockModalOpen}
+                onClose={() => setIsUnlockModalOpen(false)}
+                onConfirm={() => setIsUnlocked(true)}
+                title="Edit Past Attendance?"
+                message="You are about to edit attendance for a past date. This will overwrite the previous records. Are you sure you want to proceed?"
+                confirmText="Unlock Edit"
+                cancelText="Cancel"
+                isDangerous={true}
+            />
+
+            <ConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleDelete}
+                title="Clear Attendance Data?"
+                message={`Are you sure you want to completely clear and delete all saved attendance records for ${new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}? This action cannot be undone.`}
+                confirmText="Delete Records"
+                cancelText="Cancel"
+                isDangerous={true}
+            />
+
             {/* Student List */}
             <div className="flex flex-col gap-3">
                 {/* Search */}
@@ -267,7 +389,7 @@ export default function AttendanceManager({
                         <div
                             key={student.id}
                             onClick={() => toggleAttendance(student.id)}
-                            className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between group select-none ${isPresent
+                            className={`p-4 rounded-xl border-2 flex items-center justify-between group select-none transition-all ${isLocked ? 'cursor-not-allowed opacity-70 grayscale-[0.2]' : 'cursor-pointer'} ${isPresent
                                 ? 'bg-green-50 border-green-200 hover:border-green-300 shadow-sm'
                                 : 'bg-white border-slate-100 hover:border-blue-200 shadow-sm'
                                 }`}

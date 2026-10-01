@@ -127,7 +127,30 @@ export default function StudentModal({
                                         name="tute_id"
                                         defaultValue={student?.tute_id}
                                         type="text"
-                                        placeholder="e.g. S-001"
+                                        placeholder="Auto-generated if empty"
+                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none transition font-medium text-slate-800 placeholder:text-slate-400"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Parent Name</label>
+                                    <input
+                                        name="parent_name"
+                                        defaultValue={student?.parent_name}
+                                        type="text"
+                                        placeholder="e.g. Nimal Perera"
+                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none transition font-medium text-slate-800"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Parent Phone</label>
+                                    <input
+                                        name="parent_phone"
+                                        defaultValue={student?.parent_phone}
+                                        type="tel"
+                                        placeholder="071 987 6543"
                                         className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none transition font-medium text-slate-800"
                                     />
                                 </div>

@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'TuitionMate',
   webDir: 'public',
   server: {
-    url: 'https://tution-management-nine.vercel.app',
+    url: 'https://tution-qrattend.vercel.app',
     cleartext: true
   },
   android: {

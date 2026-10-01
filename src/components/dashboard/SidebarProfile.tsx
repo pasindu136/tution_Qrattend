@@ -1,17 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { LogOut, HelpCircle, MessageCircle, Phone, Mail } from 'lucide-react'
+import { LogOut, HelpCircle, MessageCircle, Phone, Mail, Settings } from 'lucide-react'
 import { signOut } from '@/app/login/actions' // Server Action
 import { createClient } from '@/utils/supabase/client'
 import { useSearchParams } from 'next/navigation'
 import LanguageSwitcher from '../LanguageSwitcher'
 import { useLanguage } from '@/contexts/LanguageContext'
+import SettingsModal from './SettingsModal'
 
 export default function SidebarProfile({ initialUser }: { initialUser: any }) {
     const searchParams = useSearchParams()
     const overrideUid = searchParams.get('uid')
     const [user, setUser] = useState(initialUser)
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false)
     const { t } = useLanguage();
 
     useEffect(() => {
@@ -36,6 +38,16 @@ export default function SidebarProfile({ initialUser }: { initialUser: any }) {
 
     const name = user?.full_name || "Tutor"
     const initials = name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+
+    // Determine subscription text
+    const isUnlimited = user?.is_unlimited === true;
+    let subscriptionText = t.nav.pro_plan; // Fallback
+    if (isUnlimited) {
+        subscriptionText = "Unlimited Plan";
+    } else if (user?.next_billing_date) {
+        const nextBillingDate = new Date(user.next_billing_date);
+        subscriptionText = `Valid until ${nextBillingDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+    }
 
     return (
         <div className="p-4 border-t border-slate-800">
@@ -79,15 +91,24 @@ export default function SidebarProfile({ initialUser }: { initialUser: any }) {
 
             <div className="flex items-center justify-between gap-3 p-3 bg-slate-800 rounded-xl mb-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20">
+                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
                         {initials}
                     </div>
                     <div className="overflow-hidden">
                         <p className="text-sm font-bold text-white truncate w-32">{name}</p>
-                        <p className="text-xs text-blue-400 font-bold uppercase tracking-wider">{t.nav.pro_plan}</p>
+                        <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider truncate w-32">{subscriptionText}</p>
                     </div>
                 </div>
             </div>
+
+            {/* Settings Button */}
+            <button 
+                onClick={() => setIsSettingsOpen(true)}
+                className="w-full flex items-center gap-3 text-sm text-slate-300 hover:text-white hover:bg-slate-800 p-3 rounded-lg transition-colors font-bold mb-2"
+            >
+                <Settings size={16} />
+                Settings
+            </button>
 
             {/* Sign Out Button */}
             <form action={signOut}>
@@ -96,6 +117,12 @@ export default function SidebarProfile({ initialUser }: { initialUser: any }) {
                     {t.nav.sign_out}
                 </button>
             </form>
+
+            <SettingsModal 
+                isOpen={isSettingsOpen} 
+                onClose={() => setIsSettingsOpen(false)} 
+                user={user} 
+            />
         </div>
     )
 }
