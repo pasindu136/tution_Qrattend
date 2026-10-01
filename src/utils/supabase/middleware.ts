@@ -78,7 +78,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     // Protect Admin Routes
-    if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (request.nextUrl.pathname.startsWith('/admin') && !request.nextUrl.pathname.startsWith('/admin-otp-verify')) {
         if (!user) {
             return NextResponse.redirect(new URL('/login', request.url))
         }
