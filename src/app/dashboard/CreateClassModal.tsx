@@ -62,13 +62,13 @@ export default function CreateClassModal({ ownerId }: { ownerId?: string }) {
             <AnimatePresence>
                 {isOpen && (
                     <>
-                        {/* Backdrop */}
+                        {/* Backdrop - Removed backdrop-blur-sm for mobile performance */}
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setIsOpen(false)}
-                            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+                            className="fixed inset-0 bg-black/60 z-50"
                         />
 
                         {/* Modal / Bottom Sheet */}
@@ -77,6 +77,7 @@ export default function CreateClassModal({ ownerId }: { ownerId?: string }) {
                             animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1 }}
                             exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95 }}
                             transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            style={{ willChange: "transform, opacity" }}
                             className={`fixed z-[100] bg-white p-6 shadow-2xl ${isMobile
                                 ? 'bottom-0 left-0 right-0 w-full rounded-t-3xl pb-10'
                                 : 'inset-0 m-auto w-full max-w-lg h-fit rounded-2xl'
