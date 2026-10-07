@@ -13,12 +13,11 @@ export default function ClassNav({ classId, activeTab }: { classId: string, acti
         { id: 'students', label: t.class_details.students, icon: Users, href: `/dashboard/class/${classId}/students` },
         { id: 'attendance', label: t.class_details.attendance, icon: Calendar, href: `/dashboard/class/${classId}/attendance` },
         { id: 'fees', label: t.class_details.fees, icon: Banknote, href: `/dashboard/class/${classId}/fees` },
-        { id: 'expenses', label: t.class_details.expenses, icon: Receipt, href: `/dashboard/class/${classId}/expenses` },
     ];
 
     return (
         <div className="bg-slate-100/50 p-1.5 rounded-2xl mb-8">
-            <div className="grid grid-cols-5 gap-1 md:flex md:gap-2">
+            <div className="grid grid-cols-4 gap-1 md:flex md:gap-2">
                 {tabs.map((tab) => {
                     const isActive = activeTab === tab.id;
                     const Icon = tab.icon;

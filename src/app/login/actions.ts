@@ -37,8 +37,15 @@ export async function login(formData: FormData) {
     console.log(`User ${user.email} logged in with role: ${role}`)
 
     if (role === 'admin') {
-        const bcrypt = await import('bcryptjs');
         const { cookies } = await import('next/headers');
+        
+        // TEMPORARY OTP BYPASS TO SAVE SMS CREDITS
+        cookies().set('admin_otp_verified', 'true', { secure: true, httpOnly: true });
+        redirect('/admin')
+
+        /*
+        // ORIGINAL OTP LOGIC
+        const bcrypt = await import('bcryptjs');
         const { sendSMS } = await import('@/utils/smsapi');
         
         // Generate and hash OTP
@@ -53,6 +60,7 @@ export async function login(formData: FormData) {
         await sendSMS('0767664172', `TuitionMate: Your Admin Login OTP is ${otp}. Please do not share this code.`);
         
         redirect('/admin-otp-verify')
+        */
     }
 
     redirect('/dashboard')

@@ -53,20 +53,82 @@ export default function ClassDetailsClient({ classData, studentCount, isAdmin, i
             {/* Navigation Tabs */}
             <ClassNav classId={classId} activeTab="details" />
 
-            {/* Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-400 uppercase mb-2">{t.class_details.students}</h3>
-                    <p className="text-3xl font-bold text-slate-900">{studentCount || 0}</p>
+            {/* Overview & Quick Actions */}
+            <div className="space-y-8">
+                {/* Welcome Banner */}
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-6 md:p-8 text-white shadow-md relative overflow-hidden">
+                    <div className="absolute right-0 top-0 opacity-10 transform translate-x-4 -translate-y-4">
+                        <Users size={120} />
+                    </div>
+                    <div className="relative z-10">
+                        <h2 className="text-2xl font-bold mb-2">Manage Your Class</h2>
+                        <p className="text-blue-100 max-w-md text-sm md:text-base">
+                            Everything you need to manage your students, attendance, and fees in one place.
+                        </p>
+                    </div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-400 uppercase mb-2">{t.class_details.class_fee}</h3>
-                    <p className="text-3xl font-bold text-slate-900">LKR {classData.fee_amount}</p>
+
+                {/* Quick Action Buttons */}
+                <div>
+                    <h3 className="font-bold text-slate-800 text-lg mb-3">Quick Actions</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Link href={`/dashboard/class/${classId}/attendance`} className="bg-white hover:bg-slate-50 border border-slate-200 p-5 rounded-2xl flex flex-col items-center justify-center text-center gap-3 transition-all shadow-sm hover:shadow-md group">
+                            <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <Calendar size={28} />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-slate-900">Mark Attendance</h4>
+                                <p className="text-xs text-slate-500 font-medium">Scan cards or mark manual</p>
+                            </div>
+                        </Link>
+                        
+                        <Link href={`/dashboard/class/${classId}/fees`} className="bg-white hover:bg-slate-50 border border-slate-200 p-5 rounded-2xl flex flex-col items-center justify-center text-center gap-3 transition-all shadow-sm hover:shadow-md group">
+                            <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <Banknote size={28} />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-slate-900">Collect Fees</h4>
+                                <p className="text-xs text-slate-500 font-medium">Record student payments</p>
+                            </div>
+                        </Link>
+                    </div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-400 uppercase mb-2">{t.class_details.schedule}</h3>
-                    <p className="text-xl font-bold text-slate-900">{classData.day}</p>
-                    <p className="text-slate-500">{classData.time}</p>
+
+                {/* Class Details Stats (Horizontal) */}
+                <div>
+                    <h3 className="font-bold text-slate-800 text-lg mb-3">Class Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center gap-3 hover:shadow-md transition-shadow">
+                            <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+                                <Users size={28} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t.class_details.students}</p>
+                                <p className="text-2xl font-bold text-slate-900">{studentCount || 0}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center gap-3 hover:shadow-md transition-shadow">
+                            <div className="w-14 h-14 bg-green-50 text-green-600 rounded-full flex items-center justify-center">
+                                <Banknote size={28} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t.class_details.class_fee}</p>
+                                <p className="text-2xl font-bold text-slate-900"><span className="text-sm font-medium text-slate-500 mr-1">LKR</span>{classData.fee_amount}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center gap-3 hover:shadow-md transition-shadow">
+                            <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center">
+                                <Calendar size={28} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t.class_details.schedule}</p>
+                                <p className="font-bold text-slate-900">{classData.day}</p>
+                                <p className="text-sm text-slate-500">{classData.time}</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

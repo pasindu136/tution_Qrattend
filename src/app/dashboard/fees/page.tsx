@@ -1,7 +1,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { Banknote, TrendingDown, Wallet } from "lucide-react";
+import { Banknote, TrendingDown, Wallet, MessageSquare } from "lucide-react";
 
 export default async function AllFeesPage() {
     const supabase = createClient();
@@ -31,7 +31,7 @@ export default async function AllFeesPage() {
             .order('paid_at', { ascending: false }),
         supabase
             .from('expenses')
-            .select('amount')
+            .select('amount, description')
             .in('class_id', classIds)
             .gte('date', startOfMonth)
             .lt('date', startOfNextMonth)
@@ -42,8 +42,20 @@ export default async function AllFeesPage() {
 
     // Calculate Totals
     const totalRevenue = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
-    const totalExpenses = expenses?.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) || 0;
+    const totalExpenses = expenses
+        ?.filter(e => e.description !== 'SMS Fee')
+        .reduce((sum, e) => sum + (Number(e.amount) || 0), 0) || 0;
     const netIncome = totalRevenue - totalExpenses;
+
+    // Fetch SMS Bills
+    const { data: smsBills } = await supabase
+        .from("sms_bills")
+        .select("total_messages, total_amount")
+        .eq("user_id", user.id)
+        .eq("month", currentMonth);
+
+    const smsCount = smsBills?.reduce((sum: number, bill: any) => sum + bill.total_messages, 0) || 0;
+    const smsCost = smsBills?.reduce((sum: number, bill: any) => sum + Number(bill.total_amount), 0) || 0;
 
     return (
         <div>
@@ -82,6 +94,40 @@ export default async function AllFeesPage() {
                     <div>
                         <p className="text-slate-500 text-xs font-bold uppercase">Net Income</p>
                         <h2 className="text-3xl font-bold text-blue-600">LKR {netIncome.toLocaleString()}</h2>
+                    </div>
+                </div>
+            </div>
+
+            {/* Minimal SMS Bill Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 mb-8 overflow-hidden">
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                            <MessageSquare size={16} />
+                        </div>
+                        <h3 className="font-bold text-slate-800">Monthly SMS Bill</h3>
+                    </div>
+                    <span className="text-xs font-bold bg-white border border-slate-200 text-slate-500 px-2.5 py-1 rounded-full">
+                        {currentMonth}
+                    </span>
+                </div>
+                
+                <div className="p-5 md:p-6">
+                    <div className="flex flex-col gap-3 max-w-xl">
+                        <div className="flex justify-between items-center py-1">
+                            <span className="text-sm font-medium text-slate-500">Total messages delivered</span>
+                            <span className="font-bold text-slate-900">{smsCount}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1 border-b border-slate-100 pb-4">
+                            <span className="text-sm font-medium text-slate-500">Rate per message</span>
+                            <span className="font-bold text-slate-900">LKR 1.00</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2">
+                            <span className="text-sm font-bold text-slate-800 uppercase tracking-wider">Total Amount</span>
+                            <span className="text-2xl font-bold text-indigo-600">
+                                LKR {smsCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { ArrowRight, Users, Banknote, GraduationCap, LayoutGrid } from "lucide-react";
+import { ArrowRight, Users, Banknote, GraduationCap, LayoutGrid, MessageSquare } from "lucide-react";
 import CreateClassModal from "@/app/dashboard/CreateClassModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -21,6 +21,8 @@ interface DashboardClientProps {
     netRevenue: number;
     monthlyGrossRevenue: number;
     monthlyExpenses: number;
+    smsCount?: number;
+    smsCost?: number;
     userId: string;
     isOwner: boolean;
     greeting: string;
@@ -35,6 +37,8 @@ export default function DashboardClient({
     netRevenue,
     monthlyGrossRevenue,
     monthlyExpenses,
+    smsCount = 0,
+    smsCost = 0,
     userId,
     isOwner,
     greeting,
@@ -84,7 +88,7 @@ export default function DashboardClient({
             </div>
 
             {/* 2. Mobile Stats (Compact & Single Row) */}
-            <div className="grid grid-cols-3 gap-3 mb-8 md:hidden">
+            <div className="grid grid-cols-2 gap-3 mb-8 md:hidden">
                 {/* Students */}
                 <div className="bg-white p-3 py-4 rounded-2xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center text-center">
                     <div className="p-2 bg-blue-50 text-blue-600 rounded-lg mb-2">
@@ -94,18 +98,6 @@ export default function DashboardClient({
                         {classes?.reduce((acc: number, cls: any) => acc + (cls.students?.[0]?.count || 0), 0) || 0}
                     </span>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.dashboard.students}</span>
-                </div>
-
-                {/* Income */}
-                <div className="bg-white p-3 py-4 rounded-2xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center text-center">
-                    <div className="p-2 bg-green-50 text-green-600 rounded-lg mb-2">
-                        <Banknote size={16} />
-                    </div>
-                    <span className="text-lg font-bold text-slate-900 leading-none mb-1 flex items-center justify-center">
-                        <span className="text-[10px] text-slate-400 mr-0.5">LKR</span>
-                        {(netRevenue / 1000).toFixed(1)}k
-                    </span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Net</span>
                 </div>
 
                 {/* Classes */}
@@ -121,7 +113,7 @@ export default function DashboardClient({
             </div>
 
             {/* 2. Desktop Stats (Original - Hidden on Mobile) */}
-            <div className="hidden md:grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+            <div className="hidden md:grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
                 {/* Stats Card 1 */}
                 <div className="min-w-[260px] lg:min-w-0 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between h-32 relative overflow-hidden group">
                     <div className="absolute right-0 top-0 w-24 h-24 bg-blue-50 rounded-full -mr-6 -mt-6 group-hover:scale-110 transition-transform"></div>
@@ -140,28 +132,6 @@ export default function DashboardClient({
                         <Link href="/dashboard/students" className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:gap-2 transition-all">
                             {t.dashboard.view_details} <ArrowRight size={14} />
                         </Link>
-                    </div>
-                </div>
-
-                {/* Stats Card 2 - NET REVENUE */}
-                <div className="min-w-[260px] lg:min-w-0 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between h-32 relative overflow-hidden group">
-                    <div className="absolute right-0 top-0 w-24 h-24 bg-green-50 rounded-full -mr-6 -mt-6 group-hover:scale-110 transition-transform"></div>
-                    <div className="relative z-10 flex justify-between items-start w-full">
-                        <div className="w-full">
-                            <p className="text-slate-400 font-bold text-xs uppercase tracking-wider mb-1">{t.dashboard.net_income}</p>
-                            <h3 className="text-3xl font-bold text-slate-900 flex items-baseline gap-1">
-                                <span className="text-lg text-slate-400">LKR</span>
-                                {netRevenue.toLocaleString()}
-                            </h3>
-                            <div className="flex items-center gap-3 mt-1 text-[10px] font-bold text-slate-400">
-                                <span>Gross: {monthlyGrossRevenue.toLocaleString()}</span>
-                                <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                                <span className="text-red-400">Exp: -{monthlyExpenses.toLocaleString()}</span>
-                            </div>
-                        </div>
-                        <div className="p-3 bg-green-100 rounded-2xl text-green-600 absolute right-0 top-0">
-                            <Banknote size={20} />
-                        </div>
                     </div>
                 </div>
 

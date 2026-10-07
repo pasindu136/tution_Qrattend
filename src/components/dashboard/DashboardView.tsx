@@ -55,9 +55,20 @@ export default async function DashboardView({ userId, isOwner = true }: { userId
     const monthlyExpenses = expenses
         ?.filter((exp: any) => {
             const d = new Date(exp.date);
-            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+            return d.getMonth() === currentMonth && d.getFullYear() === currentYear && exp.description !== 'SMS Fee';
         })
         .reduce((sum: number, exp: any) => sum + exp.amount, 0) || 0;
+
+    // Fetch SMS Bills
+    const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+    const { data: smsBills } = await supabase
+        .from("sms_bills")
+        .select("total_messages, total_amount")
+        .eq("user_id", userId)
+        .eq("month", currentMonthStr);
+
+    const smsCount = smsBills?.reduce((sum: number, bill: any) => sum + bill.total_messages, 0) || 0;
+    const smsCost = smsBills?.reduce((sum: number, bill: any) => sum + bill.total_amount, 0) || 0;
 
     const netRevenue = monthlyGrossRevenue - monthlyExpenses;
 
@@ -79,6 +90,8 @@ export default async function DashboardView({ userId, isOwner = true }: { userId
             netRevenue={netRevenue}
             monthlyGrossRevenue={monthlyGrossRevenue}
             monthlyExpenses={monthlyExpenses}
+            smsCount={smsCount}
+            smsCost={smsCost}
             userId={userId}
             isOwner={isOwner}
             greeting={greeting}

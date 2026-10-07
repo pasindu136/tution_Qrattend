@@ -84,7 +84,7 @@ export async function saveDraftScan(classId: string, date: string, studentId: st
                 // Determine class name for the message
                 const { data: classData } = await supabase
                     .from('classes')
-                    .select('name')
+                    .select('name, teacher_id')
                     .eq('id', classId)
                     .single()
                     
@@ -95,6 +95,37 @@ export async function saveDraftScan(classId: string, date: string, studentId: st
                     console.error("Background SMS Error:", err);
                     return { success: false, error: err.message };
                 });
+                
+                // Add to SMS Bill
+                if (smsResult?.success && classData?.teacher_id) {
+                    const month = date.substring(0, 7); // Extract YYYY-MM
+                    
+                    const { data: existingBill } = await supabase
+                        .from('sms_bills')
+                        .select('*')
+                        .eq('class_id', classId)
+                        .eq('month', month)
+                        .single();
+
+                    if (existingBill) {
+                        await supabase.from('sms_bills').update({
+                            total_messages: existingBill.total_messages + 1,
+                            total_amount: (existingBill.total_messages + 1) * existingBill.cost_per_message,
+                            updated_at: new Date().toISOString()
+                        }).eq('id', existingBill.id);
+                    } else {
+                        await supabase.from('sms_bills').insert({
+                            user_id: classData.teacher_id,
+                            class_id: classId,
+                            month: month,
+                            total_messages: 1,
+                            cost_per_message: 1.00,
+                            total_amount: 1.00
+                        });
+                    }
+                    
+                    revalidatePath('/dashboard', 'layout');
+                }
                 
                 return { success: true, smsResult };
             }
